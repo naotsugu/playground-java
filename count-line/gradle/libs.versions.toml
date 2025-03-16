@@ -1,0 +1,6 @@
+[versions]
+guava = "33.3.1-jre"
+junit-jupiter = "5.11.3"
+
+[libraries]
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
