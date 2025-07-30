@@ -5,11 +5,14 @@ import java.util.List;
 import java.util.Objects;
 
 public class App {
+
     public static void main(String[] args) {
         List<String> org = List.of("a", "b", "c", "d", "e", "f");
-        List<String> rev = List.of("d", "a", "c", "f", "e", "a");
-        List<Change> changes = buildRevision(buildPath(org, rev));
+        List<String> rev = List.of("a", "b", "b", "d", "c", "e", "f");
+        PathNode path = buildPath(org, rev);
+        List<Change> changes = buildRevision(path);
         changes.forEach(System.out::println);
+        print(changes, org, rev);
     }
 
     record PathNode(int i, int j, boolean snake, boolean bootstrap, PathNode prev) {
@@ -28,12 +31,14 @@ public class App {
         }
     }
 
-    record Change(Type type, int startOriginal, int endOriginal, int startRevised, int endRevised) { }
-    enum Type { CHANGE, DELETE, INSERT }
+    record Change(Type type, int startOrg, int endOrg, int startRev, int endRev) {
+        enum Type { CHANGE, DELETE, INSERT }
+    }
 
-    private static PathNode buildPath(final List<String> orig, final List<String> rev) {
 
-        final int n = orig.size();
+    private static <T> PathNode buildPath(final List<T> org, final List<T> rev) {
+
+        final int n = org.size();
         final int m = rev.size();
 
         final int max = n + m + 1;
@@ -64,7 +69,7 @@ public class App {
 
                 PathNode node = new PathNode(i, j, false, prev);
 
-                while (i < n && j < m && Objects.equals(orig.get(i), rev.get(j))) {
+                while (i < n && j < m && Objects.equals(org.get(i), rev.get(j))) {
                     i++;
                     j++;
                 }
@@ -98,11 +103,11 @@ public class App {
             int j = path.j;
 
             path = path.prev;
-            Type type = (path.i == i && path.j != j)
-                ? Type.INSERT
+            Change.Type type = (path.i == i && path.j != j)
+                ? Change.Type.INSERT
                 : (path.i != i && path.j == j)
-                    ? Type.DELETE
-                    : Type.CHANGE;
+                    ? Change.Type.DELETE
+                    : Change.Type.CHANGE;
             changes.addFirst(new Change(type, path.i, i, path.j, j));
 
             if (path.snake) {
@@ -110,5 +115,39 @@ public class App {
             }
         }
         return changes;
+    }
+
+    private static <T> void print(List<Change> changes, final List<T> org, final List<T> rev) {
+        final String R = "\u001b[00;31m";
+        final String G = "\u001b[00;32m";
+        final String E = "\u001b[00m";
+        final String FMT_D = R + " %04d       : -  %s" + E + "\n";
+        final String FMT_I = G + "       %04d : +  %s" + E + "\n";
+        final String FMT_N =     " %04d  %04d :    %s" + "\n";
+
+        int i = 0;
+        int j = 0;
+        while (i < org.size() && j < rev.size()) {
+            if (changes.isEmpty()) {
+                System.out.printf(FMT_N, i, j, rev.get(j++));
+                i++;
+                continue;
+            }
+            Change c = changes.getFirst();
+            if (c.type == Change.Type.CHANGE && c.startOrg <= i && i < c.endOrg) {
+                if (c.endRev - 1 == i) changes.removeFirst();
+                System.out.printf(FMT_D, i, org.get(i++));
+                System.out.printf(FMT_I, j, rev.get(j++));
+            } else if (c.type == Change.Type.INSERT && c.startRev <= j && j < c.endRev) {
+                if (c.endRev - 1 == j) changes.removeFirst();
+                System.out.printf(FMT_I, j, rev.get(j++));
+            } else if (c.type == Change.Type.DELETE && c.startOrg <= i && i < c.endOrg) {
+                if (c.endOrg - 1 == i) changes.removeFirst();
+                System.out.printf(FMT_D, i, org.get(i++));
+            } else {
+                System.out.printf(FMT_N, i, j, rev.get(j++));
+                i++;
+            }
+        }
     }
 }
