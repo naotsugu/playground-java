@@ -7,12 +7,23 @@ import java.util.Objects;
 public class App {
 
     public static void main(String[] args) {
-        List<String> org = List.of("a", "b", "c", "d", "e", "f");
-        List<String> rev = List.of("a", "b", "b", "d", "c", "e", "g", "h");
+        Source<String> org = Source.of(List.of("a", "b", "c", "d", "e", "f"));
+        Source<String> rev = Source.of(List.of("a", "b", "b", "d", "c", "e", "g", "h"));
         Node path = buildPath(org, rev);
         List<Change> changes = buildChanges(path);
         changes.forEach(System.out::println);
         print(changes, org, rev);
+    }
+
+    interface Source<T> {
+        T get(int index);
+        int size();
+        static <T> Source<T> of(List<T> list) {
+            return new Source<T>() {
+                @Override public T get(int index) { return list.get(index); }
+                @Override public int size() { return list.size(); }
+            };
+        }
     }
 
     // snakes that is a rightward or downward step followed by zero or more diagonal ones
@@ -36,7 +47,7 @@ public class App {
     }
 
 
-    private static <T> Node buildPath(final List<T> org, final List<T> rev) {
+    private static <T> Node buildPath(final Source<T> org, final Source<T> rev) {
 
         final int n = org.size();
         final int m = rev.size();
@@ -119,7 +130,7 @@ public class App {
         return changes;
     }
 
-    private static <T> void print(List<Change> changes, final List<T> org, final List<T> rev) {
+    private static <T> void print(List<Change> changes, final Source<T> org, final Source<T> rev) {
         final String R = "\u001b[00;31m";
         final String G = "\u001b[00;32m";
         final String E = "\u001b[00m";
