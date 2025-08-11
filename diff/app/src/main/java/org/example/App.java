@@ -3,6 +3,7 @@ package org.example;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 public class App {
 
@@ -129,7 +130,6 @@ public class App {
         }
         return changes;
     }
-
     private static <T> void print(List<Change> changes, final Source<T> org, final Source<T> rev) {
         final String R = "\u001b[00;31m";
         final String G = "\u001b[00;32m";
@@ -138,11 +138,30 @@ public class App {
         final String FMT_I = G + "       %04d : +  %s" + E + "\n";
         final String FMT_N =     " %04d  %04d :    %s" + "\n";
 
+        unify(changes, org, rev, line -> {
+            if (line.both()) {
+                System.out.printf(FMT_N, line.i, line.j, line.text);
+            } else if (line.left()) {
+                System.out.printf(FMT_D, line.i, line.text);
+            } else if (line.right()) {
+                System.out.printf(FMT_I, line.j, line.text);
+            }
+        });
+    }
+
+    record Line<T> (int i, int j, T text) {
+        boolean left() { return i >= 0; }
+        boolean right() { return j >= 0; }
+        boolean both() { return i >= 0 && j >= 0; }
+    }
+
+    private static <T> void unify(List<Change> changes, final Source<T> org, final Source<T> rev, final Consumer<Line<T>> consumer) {
+
         int i = 0;
         int j = 0;
         while (i < org.size() || j < rev.size()) {
             if (changes.isEmpty()) {
-                System.out.printf(FMT_N, i, j, rev.get(j++));
+                consumer.accept(new Line<>(i, j, rev.get(j++)));
                 i++;
                 continue;
             }
@@ -150,19 +169,19 @@ public class App {
             if (c.type == Change.Type.CHANGE && (c.orgFrom <= i && i < c.orgTo || c.revFrom <= j && j < c.revTo)) {
                 if (c.orgTo - 1 == i && c.revTo - 1 == j) changes.removeFirst();
                 if (org.size() > i) {
-                    System.out.printf(FMT_D, i, org.get(i++));
+                    consumer.accept(new Line<>(i, -1, org.get(i++)));
                 }
                 if (rev.size() > j) {
-                    System.out.printf(FMT_I, j, rev.get(j++));
+                    consumer.accept(new Line<>(-1, j, rev.get(j++)));
                 }
             } else if (c.type == Change.Type.INSERT && c.revFrom <= j && j < c.revTo) {
                 if (c.revTo - 1 == j) changes.removeFirst();
-                System.out.printf(FMT_I, j, rev.get(j++));
+                consumer.accept(new Line<>(-1, j, rev.get(j++)));
             } else if (c.type == Change.Type.DELETE && c.orgFrom <= i && i < c.orgTo) {
                 if (c.orgTo - 1 == i) changes.removeFirst();
-                System.out.printf(FMT_D, i, org.get(i++));
+                consumer.accept(new Line<>(i, -1, org.get(i++)));
             } else {
-                System.out.printf(FMT_N, i, j, rev.get(j++));
+                consumer.accept(new Line<>(i, j, rev.get(j++)));
                 i++;
             }
         }
