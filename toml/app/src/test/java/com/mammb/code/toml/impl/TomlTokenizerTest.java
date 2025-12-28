@@ -3,7 +3,6 @@ package com.mammb.code.toml.impl;
 import org.junit.jupiter.api.Test;
 
 import java.io.StringReader;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -11,109 +10,134 @@ class TomlTokenizerTest {
 
     @Test void keyValue() {
         var tokenizer = new TomlTokenizer(new StringReader("key = \"value\""));
-        assertToken(tokenizer, List.of(
-            of(TomlToken.STRING, "key"),
-            of(TomlToken.EQUALS, ""),
-            of(TomlToken.STRING, "value")
-        ));
+        assertNext(tokenizer, TomlToken.STRING, "key");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.STRING, "value");
     }
 
     @Test void bareKeyValue() {
         var tokenizer = new TomlTokenizer(new StringReader("a=\"b\""));
-        assertToken(tokenizer, List.of(
-            of(TomlToken.STRING, "a"),
-            of(TomlToken.EQUALS, ""),
-            of(TomlToken.STRING, "b")
-        ));
+        assertNext(tokenizer, TomlToken.STRING, "a");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.STRING, "b");
     }
 
     @Test void basicKeyValue() {
         var tokenizer = new TomlTokenizer(new StringReader("\"a\"=\"b\""));
-        assertToken(tokenizer, List.of(
-            of(TomlToken.STRING, "a"),
-            of(TomlToken.EQUALS, ""),
-            of(TomlToken.STRING, "b")
-        ));
+        assertNext(tokenizer, TomlToken.STRING, "a");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.STRING, "b");
     }
 
     @Test void literalKeyValue() {
         var tokenizer = new TomlTokenizer(new StringReader("'a'=\"b\""));
-        assertToken(tokenizer, List.of(
-            of(TomlToken.STRING, "a"),
-            of(TomlToken.EQUALS, ""),
-            of(TomlToken.STRING, "b")
-        ));
+        assertNext(tokenizer, TomlToken.STRING, "a");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.STRING, "b");
     }
 
     @Test void infValue() {
         var tokenizer = new TomlTokenizer(new StringReader("a=inf"));
-        assertToken(tokenizer, List.of(
-            of(TomlToken.STRING, "a"),
-            of(TomlToken.EQUALS, ""),
-            of(TomlToken.PINF, "")
-        ));
+        assertNext(tokenizer, TomlToken.STRING, "a");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.INF);
     }
 
     @Test void negativeInfValue() {
         var tokenizer = new TomlTokenizer(new StringReader("a=-inf"));
-        assertToken(tokenizer, List.of(
-            of(TomlToken.STRING, "a"),
-            of(TomlToken.EQUALS, ""),
-            of(TomlToken.NINF, "")
-        ));
+        assertNext(tokenizer, TomlToken.STRING, "a");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.N_INF);
     }
 
     @Test void nanValue() {
         var tokenizer = new TomlTokenizer(new StringReader("a=nan"));
-        assertToken(tokenizer, List.of(
-            of(TomlToken.STRING, "a"),
-            of(TomlToken.EQUALS, ""),
-            of(TomlToken.NAN, "")
-        ));
+        assertNext(tokenizer, TomlToken.STRING, "a");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.NAN);
+    }
+
+    @Test void intValue() {
+        var tokenizer = new TomlTokenizer(new StringReader("int=123"));
+        assertNext(tokenizer, TomlToken.STRING, "int");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.INTEGER, 123);
+    }
+
+    @Test void intUValue() {
+        var tokenizer = new TomlTokenizer(new StringReader("int=1_234"));
+        assertNext(tokenizer, TomlToken.STRING, "int");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.INTEGER, 1234);
     }
 
     @Test void numKeyValue() {
         var tokenizer = new TomlTokenizer(new StringReader("1234 = \"value\""));
-        assertToken(tokenizer, List.of(
-            of(TomlToken.STRING, "1234"),
-            of(TomlToken.EQUALS, ""),
-            of(TomlToken.STRING, "value")
-        ));
+        assertNext(tokenizer, TomlToken.STRING, "1234");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.STRING, "value");
     }
 
     @Test void quotedValue() {
         var tokenizer = new TomlTokenizer(new StringReader("'quoted \"value\"' = \"value\""));
-        assertToken(tokenizer, List.of(
-            of(TomlToken.STRING, "quoted \"value\""),
-            of(TomlToken.EQUALS, ""),
-            of(TomlToken.STRING, "value")
-        ));
+        assertNext(tokenizer, TomlToken.STRING, "quoted \"value\"");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.STRING, "value");
     }
 
     @Test void dottedKey() {
         var tokenizer = new TomlTokenizer(new StringReader("physical.color = \"orange\""));
-        assertToken(tokenizer, List.of(
-            of(TomlToken.STRING, "physical"),
-            of(TomlToken.DOT, ""),
-            of(TomlToken.STRING, "color"),
-            of(TomlToken.EQUALS, ""),
-            of(TomlToken.STRING, "orange")
-        ));
+        assertNext(tokenizer, TomlToken.STRING, "physical");
+        assertNext(tokenizer, TomlToken.DOT);
+        assertNext(tokenizer, TomlToken.STRING, "color");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.STRING, "orange");
+    }
+
+    @Test void dottedDottedKey() {
+        var tokenizer = new TomlTokenizer(new StringReader("fruit.apple.smooth = true"));
+        assertNext(tokenizer, TomlToken.STRING, "fruit");
+        assertNext(tokenizer, TomlToken.DOT);
+        assertNext(tokenizer, TomlToken.STRING, "apple");
+        assertNext(tokenizer, TomlToken.DOT);
+        assertNext(tokenizer, TomlToken.STRING, "smooth");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.TRUE);
+    }
+
+    @Test void trueValue() {
+        var tokenizer = new TomlTokenizer(new StringReader("key = true"));
+        assertNext(tokenizer, TomlToken.STRING, "key");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.TRUE);
+    }
+
+    @Test void falseValue() {
+        var tokenizer = new TomlTokenizer(new StringReader("key = false"));
+        assertNext(tokenizer, TomlToken.STRING, "key");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.FALSE);
     }
 
     // ---
 
-    private void assertToken(TomlTokenizer tokenizer, List<Pair<String>> pairs) {
-        for (Pair<String> pair : pairs) {
-            assertEquals(pair.type, tokenizer.nextToken());
-            assertEquals(pair.value, tokenizer.getCharSequence().toString());
-        }
+    private static void assertNext(TomlTokenizer tokenizer, TomlToken expectedToken, String expected) {
+        assertEquals(expectedToken, tokenizer.nextToken());
+        assertEquals(expected, tokenizer.getCharSequence().toString());
     }
 
-    private static <V> Pair<V> of(TomlToken type, V value) {
-        return new Pair<>(type, value);
+    private static void assertNext(TomlTokenizer tokenizer, TomlToken expectedToken, int expected) {
+        assertEquals(expectedToken, tokenizer.nextToken());
+        assertEquals(expected, tokenizer.getInt());
     }
 
-    record Pair<V>(TomlToken type, V value) { }
+    private static void assertNext(TomlTokenizer tokenizer, TomlToken expectedToken, long expected) {
+        assertEquals(expectedToken, tokenizer.nextToken());
+        assertEquals(expected, tokenizer.getLong());
+    }
+
+    private static void assertNext(TomlTokenizer tokenizer, TomlToken expectedToken) {
+        assertEquals(expectedToken, tokenizer.nextToken());
+    }
 
 }

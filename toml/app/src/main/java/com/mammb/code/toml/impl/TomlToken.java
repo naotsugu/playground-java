@@ -2,7 +2,7 @@ package com.mammb.code.toml.impl;
 
 public enum TomlToken {
     STRING(true), INTEGER(true), FLOAT(true), TRUE(true), FALSE(true),
-    PINF(false), NINF(false), NAN(false),
+    INF(false), N_INF(false), NAN(false),
     DATETIME(true), DATE(true), TIME(true),
     EQUALS(false), COMMA(false), DOT(false),
     CURLYOPEN(false), CURLYCLOSE(false),

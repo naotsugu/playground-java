@@ -216,7 +216,7 @@ public class TomlTokenizer implements Closeable {
             }
             switch (ch) {
                 case '\\':
-                    inPlace = false; // now onwards need to copy chars
+                    inPlace = false; // from now onwards need to copy chars
                     unescape();
                     break;
                 case '"':
@@ -325,12 +325,15 @@ public class TomlTokenizer implements Closeable {
     // reads from the buffer. Otherwise, uses read() which takes care
     // of resizing, filling up the buf, adjusting the pointers
     private int readNumberChar() {
+        int ch;
         if (readBegin < readEnd) {
-            return buf[readBegin++];
+            ch = buf[readBegin++];
         } else {
             storeEnd = readBegin;
-            return read();
+            ch = read();
         }
+System.out.println(ch);
+        return (ch == '_') ? readNumberChar() : ch;
     }
 
     private TomlToken readTrue() {
@@ -360,7 +363,7 @@ public class TomlTokenizer implements Closeable {
         if (ch1 != 'n') throw expectedChar(ch1, 'n');
         int ch2 = read();
         if (ch2 != 'f') throw expectedChar(ch1, 'f');
-        return minus ? TomlToken.NINF : TomlToken.PINF;
+        return minus ? TomlToken.N_INF : TomlToken.INF;
     }
 
     private TomlToken readNan() {
@@ -452,7 +455,9 @@ public class TomlTokenizer implements Closeable {
             int num = 0;
             int i = minus ? 1 : 0;
             for(; i < storeLen; i++) {
-                num = num * 10 + (buf[storeBegin + i] - '0');
+                int ch = buf[storeBegin + i];
+                if (ch == '_') continue;
+                num = num * 10 + (ch - '0');
             }
             return minus ? -num : num;
         } else {
@@ -467,7 +472,9 @@ public class TomlTokenizer implements Closeable {
             long num = 0;
             int i = minus ? 1 : 0;
             for(; i < storeLen; i++) {
-                num = num * 10 + (buf[storeBegin + i] - '0');
+                int ch = buf[storeBegin + i];
+                if (ch == '_') continue;
+                num = num * 10 + (ch - '0');
             }
             return minus ? -num : num;
         } else {
