@@ -55,15 +55,13 @@ public class TomlTokenizer implements Closeable {
         reset();
         int ch = readSkipWhite();
         if (keyAllowed) {
+            keyAllowed = false;
             if (isBareKeyChar(ch)) {
                 return readBareKey();
             }
         }
-        if (ch != '[' && ch != '{' && ch != '.'  && ch != ',') {
-            keyAllowed = false;
-        }
 
-        return switch (ch) {
+        TomlToken tomlToken = switch (ch) {
             case '=' -> TomlToken.EQUALS;
             case '.' -> TomlToken.DOT;
             case ',' -> TomlToken.COMMA;
@@ -80,6 +78,12 @@ public class TomlTokenizer implements Closeable {
                  '-', '+', 'i', 'n' -> readNumber(ch);
             default -> throw unexpectedChar(ch);
         };
+
+        if (ch == '[' || ch == '{' || ch == ',' || ch == '.') {
+            keyAllowed = true;
+        }
+
+        return tomlToken;
     }
 
 

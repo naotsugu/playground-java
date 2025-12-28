@@ -9,6 +9,15 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TomlTokenizerTest {
 
+    @Test void keyValue() {
+        var tokenizer = new TomlTokenizer(new StringReader("key = \"value\""));
+        assertToken(tokenizer, List.of(
+            of(TomlToken.STRING, "key"),
+            of(TomlToken.EQUALS, ""),
+            of(TomlToken.STRING, "value")
+        ));
+    }
+
     @Test void bareKeyValue() {
         var tokenizer = new TomlTokenizer(new StringReader("a=\"b\""));
         assertToken(tokenizer, List.of(
@@ -60,6 +69,24 @@ class TomlTokenizerTest {
             of(TomlToken.STRING, "a"),
             of(TomlToken.EQUALS, ""),
             of(TomlToken.NAN, "")
+        ));
+    }
+
+    @Test void numKeyValue() {
+        var tokenizer = new TomlTokenizer(new StringReader("1234 = \"value\""));
+        assertToken(tokenizer, List.of(
+            of(TomlToken.STRING, "1234"),
+            of(TomlToken.EQUALS, ""),
+            of(TomlToken.STRING, "value")
+        ));
+    }
+
+    @Test void quotedValue() {
+        var tokenizer = new TomlTokenizer(new StringReader("'quoted \"value\"' = \"value\""));
+        assertToken(tokenizer, List.of(
+            of(TomlToken.STRING, "quoted \"value\""),
+            of(TomlToken.EQUALS, ""),
+            of(TomlToken.STRING, "value")
         ));
     }
 
