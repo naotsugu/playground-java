@@ -1,8 +1,9 @@
 package com.mammb.code.toml.impl;
 
 public enum TomlToken {
-    KEY(true),
-    STRING(true), INTEGER(true), FLOAT(true), TRUE(true), FALSE(true), //DATETIME(true),
+    STRING(true), INTEGER(true), FLOAT(true), TRUE(true), FALSE(true),
+    PINF(false), NINF(false), NAN(false),
+    DATETIME(true), DATE(true), TIME(true),
     EQUALS(false), COMMA(false), DOT(false),
     CURLYOPEN(false), CURLYCLOSE(false),
     SQUAREOPEN(false), SQUARECLOSE(false),

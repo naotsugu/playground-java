@@ -56,10 +56,10 @@ public class TomlTokenizer implements Closeable {
         reset();
         int ch = readSkipWhite();
         if (bol) {
-            if (isBareKeyChar(ch)) {
-                readBareKey();
-            }
             bol = false;
+            if (isBareKeyChar(ch)) {
+                return readBareKey();
+            }
         }
 
         return switch (ch) {
@@ -70,17 +70,23 @@ public class TomlTokenizer implements Closeable {
             case '}' -> TomlToken.CURLYCLOSE;
             case '[' -> TomlToken.SQUAREOPEN;
             case ']' -> TomlToken.SQUARECLOSE;
+            case 't' -> readTrue();
+            case 'f' -> readFalse();
             case -1  -> TomlToken.EOF;
             case '"' -> readBasicString();
             case '\'' -> readLiteralString();
-            default -> readAny();
+            case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-', '+', 'i', 'n' -> readNumber(ch);
+            default -> throw unexpectedChar(ch);
         };
     }
 
 
     private boolean isBareKeyChar(int ch) {
-        //unquoted-key = 1*( ALPHA / DIGIT / %x2D / %x5F ) ; A-Z / a-z / 0-9 / - / _
-        return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '-';
+        // unquoted-key = 1*( ALPHA / DIGIT / %x2D / %x5F ) ; A-Z / a-z / 0-9 / - / _
+        return (ch >= 'A' && ch <= 'Z') ||
+               (ch >= 'a' && ch <= 'z') ||
+               (ch >= '0' && ch <= '9') ||
+                ch == '_' || ch == '-';
     }
 
     boolean hasNextToken() {
@@ -91,8 +97,8 @@ public class TomlTokenizer implements Closeable {
         while (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r') {
             if (ch == '\r') {
                 bol = true;
-                ++lineNo;
-                ++readBegin;
+                lineNo++;
+                readBegin++;
                 ch = peek();
                 if (ch == '\n') {
                     lastLineOffset = bufferOffset + readBegin + 1;
@@ -102,10 +108,10 @@ public class TomlTokenizer implements Closeable {
                 }
             } else if (ch == '\n') {
                 bol = true;
-                ++lineNo;
+                lineNo++;
                 lastLineOffset = bufferOffset + readBegin + 1;
             }
-            ++readBegin;
+            readBegin++;
             ch = peek();
         }
         return ch != -1;
@@ -134,7 +140,7 @@ public class TomlTokenizer implements Closeable {
         while (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r') {
             if (ch == '\r') {
                 bol = true;
-                ++lineNo;
+                lineNo++;
                 ch = read();
                 if (ch == '\n') {
                     lastLineOffset = bufferOffset + readBegin;
@@ -144,33 +150,174 @@ public class TomlTokenizer implements Closeable {
                 }
             } else if (ch == '\n') {
                 bol = true;
-                ++lineNo;
+                lineNo++;
                 lastLineOffset = bufferOffset + readBegin;
             }
             ch = read();
         }
         return ch;
     }
+
     TomlToken readBareKey() {
-        return null;
-    }
-    TomlToken readBasicString() {
-        return null;
+        storeBegin = storeEnd = readBegin - 1;
+        int ch;
+        for (;;) {
+            if (!isBareKeyChar(ch = read())) break;
+        }
+        if (ch != -1) {
+            readBegin--;
+            storeEnd = readBegin;
+        }
+        return TomlToken.STRING;
     }
 
     TomlToken readLiteralString() {
-        return null;
+        storeBegin = storeEnd = readBegin;
+        for (;;) {
+            int ch = read();
+            if (ch == -1 || ch == '\'') break;
+        }
+        storeEnd = readBegin - 1;
+        return TomlToken.STRING;
     }
 
-    TomlToken readAny() {
-        return null;
+    TomlToken readBasicString() {
+        // when inPlace is true, no need to copy chars
+        boolean inPlace = true;
+        storeBegin = storeEnd = readBegin;
+
+        for (;;) {
+            // write unescaped char block within the current buffer
+            if (inPlace) {
+                int ch;
+                while (readBegin < readEnd && ((ch = buf[readBegin]) >= 0x20) && ch != '\\') {
+                    if (ch == '"') {
+                        storeEnd = readBegin++;  // ++ to consume quote char
+                        return TomlToken.STRING; // Got the entire string
+                    }
+                    readBegin++;                 // consume unescaped char
+                }
+                storeEnd = readBegin;
+            }
+
+            // string may be crossing buffer boundaries and may contain
+            // escaped characters.
+            int ch = read();
+            if (ch >= 0x20 && ch != 0x22 && ch != 0x5c) {
+                if (!inPlace) {
+                    buf[storeEnd] = (char)ch;
+                }
+                storeEnd++;
+                continue;
+            }
+            switch (ch) {
+                case '\\':
+                    inPlace = false; // Now onwards need to copy chars
+                    unescape();
+                    break;
+                case '"':
+                    return TomlToken.STRING;
+                default:
+                    throw unexpectedChar(ch);
+            }
+        }
     }
 
     private void unescape() {
-
+        int ch = read();
+        switch (ch) {
+            case 'b' -> buf[storeEnd++] = '\b';
+            case 't' -> buf[storeEnd++] = '\t';
+            case 'n' -> buf[storeEnd++] = '\n';
+            case 'f' -> buf[storeEnd++] = '\f';
+            case 'r' -> buf[storeEnd++] = '\r';
+            case '"', '\\' , '/' -> buf[storeEnd++] = (char) ch;
+            case 'u' -> {
+                int unicode = 0;
+                for (int i = 0; i < 4; i++) {
+                    int ch3 = read();
+                    int digit = (ch3 >= 0 && ch3 < HEX_LENGTH) ? HEX[ch3] : -1;
+                    if (digit < 0) {
+                        throw unexpectedChar(ch3);
+                    }
+                    unicode = (unicode << 4) | digit;
+                }
+                buf[storeEnd++] = (char) unicode;
+            }
+            default ->  throw unexpectedChar(ch);
+        }
     }
 
-    // Reads a number char. If the char is within the buffer, directly
+    private TomlToken readNumber(int ch)  {
+
+        storeBegin = storeEnd = readBegin - 1;
+
+        // sign
+        if (ch == '+') {
+            ch = readNumberChar();
+            if ((ch < '0' || ch > '9') && ch != 'i' && ch != 'n') {
+                throw unexpectedChar(ch);
+            }
+        } else if (ch == '-') {
+            this.minus = true;
+            ch = readNumberChar();
+            if ((ch < '0' || ch > '9') && ch != 'i' && ch != 'n') {
+                throw unexpectedChar(ch);
+            }
+        }
+
+        if (ch == 'i') {
+            return readInf();
+        } else if (ch == 'n') {
+            return readNan();
+        }
+
+        // int
+        if (ch == '0') {
+            ch = readNumberChar();
+        } else {
+            do {
+                ch = readNumberChar();
+            } while (ch >= '0' && ch <= '9');
+        }
+
+        // frac
+        if (ch == '.') {
+            this.fracOrExp = true;
+            int count = 0;
+            do {
+                ch = readNumberChar();
+                count++;
+            } while (ch >= '0' && ch <= '9');
+            if (count == 1) {
+                throw unexpectedChar(ch);
+            }
+        }
+
+        // exp
+        if (ch == 'e' || ch == 'E') {
+            this.fracOrExp = true;
+            ch = readNumberChar();
+            if (ch == '+' || ch == '-') {
+                ch = readNumberChar();
+            }
+            int count;
+            for (count = 0; ch >= '0' && ch <= '9'; count++) {
+                ch = readNumberChar();
+            }
+            if (count == 0) {
+                throw unexpectedChar(ch);
+            }
+        }
+        if (ch != -1) {
+            // Only reset readBegin if eof has not been reached
+            readBegin--;
+            storeEnd = readBegin;
+        }
+        return fracOrExp ? TomlToken.FLOAT : TomlToken.INTEGER;
+    }
+
+    // Reads a number of char. If the char is within the buffer, directly
     // reads from the buffer. Otherwise, uses read() which takes care
     // of resizing, filling up the buf, adjusting the pointers
     private int readNumberChar() {
@@ -182,28 +329,42 @@ public class TomlTokenizer implements Closeable {
         }
     }
 
-    private void readNumber(int ch)  {
-
+    private TomlToken readTrue() {
+        int ch1 = read();
+        if (ch1 != 'r') throw expectedChar(ch1, 'r');
+        int ch2 = read();
+        if (ch2 != 'u') throw expectedChar(ch1, 'u');
+        int ch3 = read();
+        if (ch3 != 'e') throw expectedChar(ch1, 'e');
+        return TomlToken.TRUE;
     }
 
-    private void readTrue() {
+    private TomlToken readFalse() {
         int ch1 = read();
-        if (ch1 != 'r') throw new RuntimeException();
+        if (ch1 != 'a') throw expectedChar(ch1, 'a');
         int ch2 = read();
-        if (ch2 != 'u') throw new RuntimeException();
+        if (ch2 != 'l') throw expectedChar(ch1, 'l');
         int ch3 = read();
-        if (ch3 != 'e') throw new RuntimeException();
-    }
-
-    private void readFalse() {
-        int ch1 = read();
-        if (ch1 != 'a') throw new RuntimeException();
-        int ch2 = read();
-        if (ch2 != 'l') throw new RuntimeException();
-        int ch3 = read();
-        if (ch3 != 's') throw new RuntimeException();
+        if (ch3 != 's') throw expectedChar(ch1, 's');
         int ch4 = read();
-        if (ch4 != 'e') throw new RuntimeException();
+        if (ch4 != 'e') throw expectedChar(ch1, 'e');
+        return TomlToken.FALSE;
+    }
+
+    private TomlToken readInf() {
+        int ch1 = read();
+        if (ch1 != 'n') throw expectedChar(ch1, 'n');
+        int ch2 = read();
+        if (ch2 != 'f') throw expectedChar(ch1, 'f');
+        return minus ? TomlToken.NINF : TomlToken.PINF;
+    }
+
+    private TomlToken readNan() {
+        int ch1 = read();
+        if (ch1 != 'a') throw expectedChar(ch1, 'a');
+        int ch2 = read();
+        if (ch2 != 'n') throw expectedChar(ch1, 'n');
+        return TomlToken.NAN;
     }
 
     private int read() {
@@ -318,7 +479,7 @@ public class TomlTokenizer implements Closeable {
     }
 
     // returns true for common long values (1-18 digits).
-    // So there are cases it will return false even though the number is long
+    // So there are cases that will return false even though the number is long
     boolean isDefinitelyLong() {
         int storeLen = storeEnd - storeBegin;
         return !fracOrExp && (storeLen <= 18 || (minus && storeLen == 19));
@@ -337,4 +498,27 @@ public class TomlTokenizer implements Closeable {
         }
     }
 
+    // Table to look up hex ch -> value (for e.g. HEX['F'] = 15, HEX['5'] = 5)
+    private final static int[] HEX = new int[128];
+    static {
+        Arrays.fill(HEX, -1);
+        for (int i = '0'; i <= '9'; i++) {
+            HEX[i] = i - '0';
+        }
+        for (int i = 'A'; i <= 'F'; i++) {
+            HEX[i] = 10 + i - 'A';
+        }
+        for (int i = 'a'; i <= 'f'; i++) {
+            HEX[i] = 10 + i - 'a';
+        }
+    }
+    private final static int HEX_LENGTH = HEX.length;
+
+    private RuntimeException unexpectedChar(int ch) {
+        return new RuntimeException("tokenizer.unexpected.char [" + ch + "]");
+    }
+
+    private RuntimeException expectedChar(int unexpected, char expected) {
+        return new RuntimeException("tokenizer.expected.char [" + unexpected + "], expected [" + expected + "]");
+    }
 }
