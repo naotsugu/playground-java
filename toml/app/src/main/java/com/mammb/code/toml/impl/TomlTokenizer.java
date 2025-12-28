@@ -38,8 +38,7 @@ public class TomlTokenizer implements Closeable {
     // calculating TomlLocation's stream offset, column no.
     private long bufferOffset = 0;
 
-    // beginning of line
-    private boolean bol = true;
+    private boolean keyAllowed = true;
     private boolean closed = false;
 
     private boolean minus;
@@ -55,11 +54,13 @@ public class TomlTokenizer implements Closeable {
     TomlToken nextToken() {
         reset();
         int ch = readSkipWhite();
-        if (bol) {
-            bol = false;
+        if (keyAllowed) {
             if (isBareKeyChar(ch)) {
                 return readBareKey();
             }
+        }
+        if (ch != '[' && ch != '{' && ch != '.'  && ch != ',') {
+            keyAllowed = false;
         }
 
         return switch (ch) {
@@ -75,7 +76,8 @@ public class TomlTokenizer implements Closeable {
             case -1  -> TomlToken.EOF;
             case '"' -> readBasicString();
             case '\'' -> readLiteralString();
-            case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-', '+', 'i', 'n' -> readNumber(ch);
+            case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+                 '-', '+', 'i', 'n' -> readNumber(ch);
             default -> throw unexpectedChar(ch);
         };
     }
@@ -83,10 +85,8 @@ public class TomlTokenizer implements Closeable {
 
     private boolean isBareKeyChar(int ch) {
         // unquoted-key = 1*( ALPHA / DIGIT / %x2D / %x5F ) ; A-Z / a-z / 0-9 / - / _
-        return (ch >= 'A' && ch <= 'Z') ||
-               (ch >= 'a' && ch <= 'z') ||
-               (ch >= '0' && ch <= '9') ||
-                ch == '_' || ch == '-';
+        return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
+               (ch >= '0' && ch <= '9') || ch == '_' || ch == '-';
     }
 
     boolean hasNextToken() {
@@ -96,7 +96,7 @@ public class TomlTokenizer implements Closeable {
         // whitespace
         while (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r') {
             if (ch == '\r') {
-                bol = true;
+                keyAllowed = true;
                 lineNo++;
                 readBegin++;
                 ch = peek();
@@ -107,7 +107,7 @@ public class TomlTokenizer implements Closeable {
                     continue;
                 }
             } else if (ch == '\n') {
-                bol = true;
+                keyAllowed = true;
                 lineNo++;
                 lastLineOffset = bufferOffset + readBegin + 1;
             }
@@ -139,7 +139,7 @@ public class TomlTokenizer implements Closeable {
         int ch = read();
         while (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r') {
             if (ch == '\r') {
-                bol = true;
+                keyAllowed = true;
                 lineNo++;
                 ch = read();
                 if (ch == '\n') {
@@ -149,7 +149,7 @@ public class TomlTokenizer implements Closeable {
                     continue;
                 }
             } else if (ch == '\n') {
-                bol = true;
+                keyAllowed = true;
                 lineNo++;
                 lastLineOffset = bufferOffset + readBegin;
             }
@@ -212,7 +212,7 @@ public class TomlTokenizer implements Closeable {
             }
             switch (ch) {
                 case '\\':
-                    inPlace = false; // Now onwards need to copy chars
+                    inPlace = false; // now onwards need to copy chars
                     unescape();
                     break;
                 case '"':

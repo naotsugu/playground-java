@@ -36,6 +36,35 @@ class TomlTokenizerTest {
         ));
     }
 
+    @Test void infValue() {
+        var tokenizer = new TomlTokenizer(new StringReader("a=inf"));
+        assertToken(tokenizer, List.of(
+            of(TomlToken.STRING, "a"),
+            of(TomlToken.EQUALS, ""),
+            of(TomlToken.PINF, "")
+        ));
+    }
+
+    @Test void negativeInfValue() {
+        var tokenizer = new TomlTokenizer(new StringReader("a=-inf"));
+        assertToken(tokenizer, List.of(
+            of(TomlToken.STRING, "a"),
+            of(TomlToken.EQUALS, ""),
+            of(TomlToken.NINF, "")
+        ));
+    }
+
+    @Test void nanValue() {
+        var tokenizer = new TomlTokenizer(new StringReader("a=nan"));
+        assertToken(tokenizer, List.of(
+            of(TomlToken.STRING, "a"),
+            of(TomlToken.EQUALS, ""),
+            of(TomlToken.NAN, "")
+        ));
+    }
+
+    // ---
+
     private void assertToken(TomlTokenizer tokenizer, List<Pair<String>> pairs) {
         for (Pair<String> pair : pairs) {
             assertEquals(pair.type, tokenizer.nextToken());
