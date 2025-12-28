@@ -90,6 +90,17 @@ class TomlTokenizerTest {
         ));
     }
 
+    @Test void dottedKey() {
+        var tokenizer = new TomlTokenizer(new StringReader("physical.color = \"orange\""));
+        assertToken(tokenizer, List.of(
+            of(TomlToken.STRING, "physical"),
+            of(TomlToken.DOT, ""),
+            of(TomlToken.STRING, "color"),
+            of(TomlToken.EQUALS, ""),
+            of(TomlToken.STRING, "orange")
+        ));
+    }
+
     // ---
 
     private void assertToken(TomlTokenizer tokenizer, List<Pair<String>> pairs) {
