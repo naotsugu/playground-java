@@ -22,7 +22,8 @@ public interface BufferPool {
                 char[] t = getQueue().poll();
                 if (t == null)
                     return new char[4096];
-                return t;            }
+                return t;
+            }
 
             @Override
             public void recycle(char[] t) {

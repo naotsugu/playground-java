@@ -74,8 +74,8 @@ public class TomlTokenizer implements Closeable {
             case 't' -> readTrue();
             case 'f' -> readFalse();
             case -1  -> TomlToken.EOF;
-            case '"' -> readBasicString();
-            case '\'' -> readLiteralString();
+            case '"' -> readBasic();
+            case '\'' -> readLiteral();
             case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
                  '-', '+', 'i', 'n' -> readNumber(ch);
             default -> throw unexpectedChar(ch);
@@ -147,6 +147,28 @@ public class TomlTokenizer implements Closeable {
         }
     }
 
+    private boolean matchPeek(int... chs) {
+        int localReadBegin = readBegin;
+        try {
+            for (int ch : chs) {
+                if (localReadBegin == readEnd) {
+                    // need to fill the buffer
+                    int len = fillBuf();
+                    if (len == -1) {
+                        return false;
+                    }
+                    assert len != 0;
+                    localReadBegin = storeEnd;
+                    readEnd = readBegin + len;
+                }
+                if (buf[localReadBegin++] != ch) return false;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return true;
+    }
+
     int readSkipWhite() {
         int ch = read();
         while (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r') {
@@ -183,7 +205,10 @@ public class TomlTokenizer implements Closeable {
         return TomlToken.STRING;
     }
 
-    TomlToken readLiteralString() {
+    TomlToken readLiteral() {
+
+        if (matchPeek('\'', '\'')) return readLiteralTextBlock();
+
         storeBegin = storeEnd = readBegin;
         for (;;) {
             int ch = read();
@@ -193,7 +218,10 @@ public class TomlTokenizer implements Closeable {
         return TomlToken.STRING;
     }
 
-    TomlToken readBasicString() {
+    TomlToken readBasic() {
+
+        if (matchPeek('"', '"')) return readTextBlock();
+
         // when inPlace is true, no need to copy chars
         boolean inPlace = true;
         storeBegin = storeEnd = readBegin;
@@ -202,7 +230,7 @@ public class TomlTokenizer implements Closeable {
             // write unescaped char block within the current buffer
             if (inPlace) {
                 int ch;
-                while (readBegin < readEnd && ((ch = buf[readBegin]) >= 0x20) && ch != '\\') {
+                while (readBegin < readEnd && ((ch = buf[readBegin]) >= ' ') && ch != '\\') {
                     if (ch == '"') {
                         storeEnd = readBegin++;  // ++ to consume quote char
                         return TomlToken.STRING; // Got the entire string
@@ -215,7 +243,7 @@ public class TomlTokenizer implements Closeable {
             // string may be crossing buffer boundaries and may contain
             // escaped characters.
             int ch = read();
-            if (ch >= 0x20 && ch != 0x22 && ch != 0x5c) {
+            if (ch >= ' ' && ch != '"' && ch != '\\') {
                 if (!inPlace) {
                     buf[storeEnd] = (char) ch;
                 }
@@ -233,6 +261,36 @@ public class TomlTokenizer implements Closeable {
                     throw unexpectedChar(ch);
             }
         }
+    }
+
+    TomlToken readTextBlock() {
+        return null;
+    }
+
+    TomlToken readLiteralTextBlock() {
+        int cons = 0;
+        readBegin += 2;
+        if (matchPeek('\r')) {
+            readBegin++;
+        }
+        if (matchPeek('\n')) {
+            readBegin++;
+        }
+        storeBegin = storeEnd = readBegin;
+        for (;;) {
+            int ch = read();
+            if (ch == -1) break;
+            if (ch == '\'') {
+                cons++;
+                if (cons == 3) {
+                    storeEnd = readBegin - 3;
+                    break;
+                }
+            } else {
+                cons = 0;
+            }
+        }
+        return TomlToken.STRING;
     }
 
     private void unescape() {
@@ -516,7 +574,7 @@ public class TomlTokenizer implements Closeable {
         }
     }
 
-    // Table to look up hex ch -> value (for e.g. HEX['F'] = 15, HEX['5'] = 5)
+    // Table to look up hex ch -> value (for e.g., HEX['F'] = 15, HEX['5'] = 5)
     private final static int[] HEX = new int[128];
     static {
         Arrays.fill(HEX, -1);
