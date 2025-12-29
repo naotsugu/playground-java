@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.StringReader;
 
+import static com.mammb.code.toml.impl.TomlTokenizerAssertions.assertNext;
 import static org.junit.jupiter.api.Assertions.*;
 
 class TomlTokenizerTest {
@@ -130,27 +131,6 @@ class TomlTokenizerTest {
         assertNext(tokenizer, TomlToken.COMMA);
         assertNext(tokenizer, TomlToken.INTEGER, 3);
         assertNext(tokenizer, TomlToken.SQUARECLOSE);
-    }
-
-    // ---
-
-    private static void assertNext(TomlTokenizer tokenizer, TomlToken expectedToken, String expected) {
-        assertEquals(expectedToken, tokenizer.nextToken());
-        assertEquals(expected, tokenizer.getCharSequence().toString());
-    }
-
-    private static void assertNext(TomlTokenizer tokenizer, TomlToken expectedToken, int expected) {
-        assertEquals(expectedToken, tokenizer.nextToken());
-        assertEquals(expected, tokenizer.getInt());
-    }
-
-    private static void assertNext(TomlTokenizer tokenizer, TomlToken expectedToken, long expected) {
-        assertEquals(expectedToken, tokenizer.nextToken());
-        assertEquals(expected, tokenizer.getLong());
-    }
-
-    private static void assertNext(TomlTokenizer tokenizer, TomlToken expectedToken) {
-        assertEquals(expectedToken, tokenizer.nextToken());
     }
 
 }
