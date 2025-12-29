@@ -119,6 +119,19 @@ class TomlTokenizerTest {
         assertNext(tokenizer, TomlToken.FALSE);
     }
 
+    @Test void intArray() {
+        var tokenizer = new TomlTokenizer(new StringReader("integers = [ 1, 2, 3 ]"));
+        assertNext(tokenizer, TomlToken.STRING, "integers");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.SQUAREOPEN);
+        assertNext(tokenizer, TomlToken.INTEGER, 1);
+        assertNext(tokenizer, TomlToken.COMMA);
+        assertNext(tokenizer, TomlToken.INTEGER, 2);
+        assertNext(tokenizer, TomlToken.COMMA);
+        assertNext(tokenizer, TomlToken.INTEGER, 3);
+        assertNext(tokenizer, TomlToken.SQUARECLOSE);
+    }
+
     // ---
 
     private static void assertNext(TomlTokenizer tokenizer, TomlToken expectedToken, String expected) {

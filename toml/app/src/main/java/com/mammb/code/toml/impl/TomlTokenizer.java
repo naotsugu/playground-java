@@ -55,10 +55,10 @@ public class TomlTokenizer implements Closeable {
         reset();
         int ch = readSkipWhite();
         if (keyAllowed) {
-            keyAllowed = false;
             if (isBareKeyChar(ch)) {
                 return readBareKey();
             }
+            keyAllowed = (ch == '[' || ch == '.');
         }
 
         TomlToken tomlToken = switch (ch) {
@@ -78,10 +78,6 @@ public class TomlTokenizer implements Closeable {
                  '-', '+', 'i', 'n' -> readNumber(ch);
             default -> throw unexpectedChar(ch);
         };
-
-        if (ch == '[' || ch == '{' || ch == ',' || ch == '.') {
-            keyAllowed = true;
-        }
 
         return tomlToken;
     }
@@ -209,7 +205,7 @@ public class TomlTokenizer implements Closeable {
             int ch = read();
             if (ch >= 0x20 && ch != 0x22 && ch != 0x5c) {
                 if (!inPlace) {
-                    buf[storeEnd] = (char)ch;
+                    buf[storeEnd] = (char) ch;
                 }
                 storeEnd++;
                 continue;
@@ -236,7 +232,7 @@ public class TomlTokenizer implements Closeable {
             case 'f' -> buf[storeEnd++] = '\f';
             case 'r' -> buf[storeEnd++] = '\r';
             case '"', '\\' , '/' -> buf[storeEnd++] = (char) ch;
-            case 'u' -> {
+            case 'u', 'U' -> {
                 int unicode = 0;
                 for (int i = 0; i < 4; i++) {
                     int ch3 = read();
@@ -332,7 +328,6 @@ public class TomlTokenizer implements Closeable {
             storeEnd = readBegin;
             ch = read();
         }
-System.out.println(ch);
         return (ch == '_') ? readNumberChar() : ch;
     }
 
@@ -454,7 +449,7 @@ System.out.println(ch);
         if (!fracOrExp && (storeLen <= 9 || (minus && storeLen == 10))) {
             int num = 0;
             int i = minus ? 1 : 0;
-            for(; i < storeLen; i++) {
+            for (; i < storeLen; i++) {
                 int ch = buf[storeBegin + i];
                 if (ch == '_') continue;
                 num = num * 10 + (ch - '0');
@@ -471,7 +466,7 @@ System.out.println(ch);
         if (!fracOrExp && (storeLen <= 18 || (minus && storeLen == 19))) {
             long num = 0;
             int i = minus ? 1 : 0;
-            for(; i < storeLen; i++) {
+            for (; i < storeLen; i++) {
                 int ch = buf[storeBegin + i];
                 if (ch == '_') continue;
                 num = num * 10 + (ch - '0');
