@@ -36,6 +36,22 @@ public class TomlTokenizerArrayTest {
     }
 
     @Test
+    void stringArray2() {
+        var tokenizer = new TomlTokenizer(new StringReader("string_array = [ \"all\", 'strings', \"\"\"are the same\"\"\", '''type''' ]"));
+        assertNext(tokenizer, TomlToken.STRING, "string_array");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.SQUAREOPEN);
+        assertNext(tokenizer, TomlToken.STRING, "all");
+        assertNext(tokenizer, TomlToken.COMMA);
+        assertNext(tokenizer, TomlToken.STRING, "strings");
+        assertNext(tokenizer, TomlToken.COMMA);
+        assertNext(tokenizer, TomlToken.STRING, "are the same");
+        assertNext(tokenizer, TomlToken.COMMA);
+        assertNext(tokenizer, TomlToken.STRING, "type");
+        assertNext(tokenizer, TomlToken.SQUARECLOSE);
+    }
+
+    @Test
     void nestedIntsArray() {
         var tokenizer = new TomlTokenizer(new StringReader("nested_arrays_of_ints = [ [ 1, 2 ], [3, 4, 5] ]"));
         assertNext(tokenizer, TomlToken.STRING, "nested_arrays_of_ints");
