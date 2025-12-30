@@ -266,8 +266,16 @@ public class TomlTokenizer implements Closeable {
     TomlToken readTextBlock() {
 
         readBegin += 2;
-        if (matchPeek('\r', '\n')) readBegin += 2;
-        if (matchPeek('\n')) readBegin++;
+
+        // a newline immediately following the opening delimiter will be trimmed.
+        if (matchPeek('\r', '\n')) {
+            lineNo++;
+            readBegin += 2;
+        }
+        if (matchPeek('\n')) {
+            lineNo++;
+            readBegin++;
+        }
 
         int cons = 0;
         boolean inPlace = true;
@@ -319,8 +327,14 @@ public class TomlTokenizer implements Closeable {
     TomlToken readLiteralTextBlock() {
 
         readBegin += 2;
-        if (matchPeek('\r', '\n')) readBegin += 2;
-        if (matchPeek('\n')) readBegin++;
+        if (matchPeek('\r', '\n')) {
+            lineNo++;
+            readBegin += 2;
+        }
+        if (matchPeek('\n')) {
+            lineNo++;
+            readBegin++;
+        }
 
         int cons = 0;
         storeBegin = storeEnd = readBegin;
