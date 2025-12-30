@@ -266,19 +266,14 @@ public class TomlTokenizer implements Closeable {
     TomlToken readTextBlock() {
 
         readBegin += 2;
-        if (matchPeek('\r')) {
-            readBegin++;
-        }
-        if (matchPeek('\n')) {
-            readBegin++;
-        }
+        if (matchPeek('\r')) readBegin++;
+        if (matchPeek('\n')) readBegin++;
 
         int cons = 0;
         boolean inPlace = true;
         storeBegin = storeEnd = readBegin;
 
         for (;;) {
-            // write unescaped char block within the current buffer
             if (inPlace) {
                 int ch;
                 while (readBegin < readEnd && ((ch = buf[readBegin]) != '\\')) {
@@ -296,38 +291,37 @@ public class TomlTokenizer implements Closeable {
                 storeEnd = readBegin;
             }
 
-            // string may be crossing buffer boundaries and may contain
-            // escaped characters.
             int ch = read();
-            if (ch >= ' ' && ch != '"' && ch != '\\') {
+            if (ch == -1) {
+                throw unexpectedChar(ch);
+            }
+            if (ch != '\\') {
                 if (!inPlace) {
                     buf[storeEnd] = (char) ch;
                 }
                 storeEnd++;
+                if (ch == '"') {
+                    cons++;
+                    if (cons == 3) {
+                        storeEnd -= 3;
+                        return TomlToken.STRING;
+                    }
+                } else {
+                    cons = 0;
+                }
                 continue;
             }
-            switch (ch) {
-                case '\\':
-                    inPlace = false; // from now onwards need to copy chars
-                    unescape();
-                    break;
-                case '"':
-                    return TomlToken.STRING;
-                default:
-                    throw unexpectedChar(ch);
-            }
+            inPlace = false;
+            unescape();
         }
     }
 
     TomlToken readLiteralTextBlock() {
-        int cons = 0;
         readBegin += 2;
-        if (matchPeek('\r')) {
-            readBegin++;
-        }
-        if (matchPeek('\n')) {
-            readBegin++;
-        }
+        if (matchPeek('\r')) readBegin++;
+        if (matchPeek('\n')) readBegin++;
+
+        int cons = 0;
         storeBegin = storeEnd = readBegin;
         for (;;) {
             int ch = read();
