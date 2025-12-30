@@ -169,6 +169,29 @@ public class TomlTokenizer implements Closeable {
         return true;
     }
 
+    private boolean matchPeekAny(int... chs) {
+        int localReadBegin = readBegin;
+        try {
+            if (localReadBegin == readEnd) {
+                // need to fill the buffer
+                int len = fillBuf();
+                if (len == -1) {
+                    return false;
+                }
+                assert len != 0;
+                localReadBegin = storeEnd;
+                readEnd = readBegin + len;
+            }
+            int c = buf[localReadBegin];
+            for (int ch : chs) {
+                if (ch == c) return true;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return false;
+    }
+
     int readSkipWhite() {
         int ch = read();
         while (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r') {
@@ -302,8 +325,17 @@ public class TomlTokenizer implements Closeable {
             int ch = read();
             if (ch == -1) {
                 throw unexpectedChar(ch);
-            }
-            if (ch != '\\') {
+            } else if (ch == '\\') {
+                inPlace = false;
+                if (matchPeekAny(' ', '\t', '\r', '\n')) {
+                    // it will be trimmed along with all whitespace (including newlines)
+                    // up to the next non-whitespace character or closing delimiter.
+                    while ((ch = read()) != -1 && (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')) { }
+                    readBegin--;
+                } else {
+                    unescape();
+                }
+            } else {
                 if (!inPlace) {
                     buf[storeEnd] = (char) ch;
                 }
@@ -317,10 +349,7 @@ public class TomlTokenizer implements Closeable {
                 } else {
                     cons = 0;
                 }
-                continue;
             }
-            inPlace = false;
-            unescape();
         }
     }
 
@@ -441,7 +470,7 @@ public class TomlTokenizer implements Closeable {
             }
         }
         if (ch != -1) {
-            // Only reset readBegin if eof has not been reached
+            // only reset readBegin if eof has not been reached
             readBegin--;
             storeEnd = readBegin;
         }
@@ -529,7 +558,7 @@ public class TomlTokenizer implements Closeable {
                     bufferPool.recycle(buf);
                     buf = doubleBuf;
                 } else {
-                    // Left shift all the stored data to make space
+                    // left shift all the stored data to make space
                     System.arraycopy(buf, storeBegin, buf, 0, storeLen);
                     storeEnd = storeLen;
                     storeBegin = 0;
@@ -633,6 +662,16 @@ public class TomlTokenizer implements Closeable {
             bufferPool.recycle(buf);
             closed = true;
         }
+    }
+
+    private static boolean isWsChar(int ch) {
+        // wschar =  %x20  ; Space
+        // wschar =/ %x09  ; Horizontal tab
+        return ch == ' ' || ch == '\t';
+    }
+
+    private static boolean isNewLineChar(int ch) {
+        return ch == '\r' || ch == '\n';
     }
 
     // Table to look up hex ch -> value (for e.g., HEX['F'] = 15, HEX['5'] = 5)
