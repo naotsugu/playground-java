@@ -266,7 +266,7 @@ public class TomlTokenizer implements Closeable {
     TomlToken readTextBlock() {
 
         readBegin += 2;
-        if (matchPeek('\r')) readBegin++;
+        if (matchPeek('\r', '\n')) readBegin += 2;
         if (matchPeek('\n')) readBegin++;
 
         int cons = 0;
@@ -317,8 +317,9 @@ public class TomlTokenizer implements Closeable {
     }
 
     TomlToken readLiteralTextBlock() {
+
         readBegin += 2;
-        if (matchPeek('\r')) readBegin++;
+        if (matchPeek('\r', '\n')) readBegin += 2;
         if (matchPeek('\n')) readBegin++;
 
         int cons = 0;

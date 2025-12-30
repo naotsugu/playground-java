@@ -14,11 +14,25 @@ public class TomlTokenizerTextBlockTest {
         assertNext(tokenizer, TomlToken.STRING, "Here are two quotation marks: \"\". Simple enough.");
     }
 
+    @Test void textBlockMl() {
+        var tokenizer = new TomlTokenizer(new StringReader("str1 = \"\"\"\nRoses are red\nViolets are blue\"\"\""));
+        assertNext(tokenizer, TomlToken.STRING, "str1");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.STRING, "Roses are red\nViolets are blue");
+    }
+
     @Test void literalTextBlock() {
         var tokenizer = new TomlTokenizer(new StringReader("regex = '''I [dw]on't need \\d{2} apples'''"));
         assertNext(tokenizer, TomlToken.STRING, "regex");
         assertNext(tokenizer, TomlToken.EQUALS);
         assertNext(tokenizer, TomlToken.STRING, "I [dw]on't need \\d{2} apples");
+    }
+
+    @Test void literalTextBlockMl() {
+        var tokenizer = new TomlTokenizer(new StringReader("lines = '''\nThe first newline is\ntrimmed in literal strings.\n'''"));
+        assertNext(tokenizer, TomlToken.STRING, "lines");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.STRING, "The first newline is\ntrimmed in literal strings.\n");
     }
 
 }
