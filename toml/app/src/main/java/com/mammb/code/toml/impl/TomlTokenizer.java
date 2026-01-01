@@ -4,9 +4,11 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 public class TomlTokenizer implements Closeable {
 
@@ -518,39 +520,59 @@ public class TomlTokenizer implements Closeable {
 
     private Optional<TomlToken> readDateTimeOr(int ch) {
 
-        if ('0' > ch || ch > '9') {
-            return Optional.empty();
+        storeBegin = storeEnd = readBegin - 1;
+
+        int n = 0;
+        while ('0' <= ch && ch <= '9') {
+            n++;
+            ch = readNumberChar();
         }
 
-        storeBegin = storeEnd = readBegin - 1;
-        int readBeginPin = readBegin;
-        int ch1 = readNumberChar(), ch2 = readNumberChar();
-        if ('0' <= ch && ch <= '2' && '0' <= ch1 && ch1 <= '9' && ch2 == ':') {
-            // local-time = time-hour ":" time-minute [ ":" time-second [ time-secfrac ] ]
-            //   07:32:00, 00:32:00.5, 00:32:00.999999, 07:32
-            while ((ch = readNumberChar()) != -1 && (('0' <= ch && ch <= '9') || ch == ':' || ch == '.')) { }
+        if (n == 2 && ch == ':') {
+            // local-time 07:32:00, 00:32:00.5, 00:32:00.999999, 07:32
+            while (('0' <= ch && ch <= '9') || ch == ':' || ch == '.') {
+                if (n == 5 && ch != ':') throw expectedChar(ch, ':');
+                if (n == 8 && ch != '.') throw expectedChar(ch, '.');
+                n++;
+                ch = readNumberChar();
+            }
             storeEnd = readBegin--;
             return Optional.of(TomlToken.TIME);
         }
 
-        int y2 = ch2, y3 = read(), ym = read(), m1 = read(), m2 = read(), md = read(), d1 = read(), d2 = read();
-        if ('0' <= y2 && y2 <= '9' && '0' <= y3 && y3 <= '9' && ym == '-' && '0' <= m1 && m1 <= '1' && '0' <= m2 && m2 <= '9' &&
-            md == '-' && '0' <= d1 && d1 <= '3' && '0' <= d2 && d2 <= '9') {
-            int td = read(), th1 = read();
-            if ((td == ' ' || td == 'T'|| td == 't') && '0' <= th1 && th1 <= '2') {
-                boolean offset = false;
-                while ((ch = read()) != -1 && (('0' <= ch && ch <= '9') || ch == ':' || ch == '.' || ch == '-' || ch == 'Z')) {
-                    if (ch == 'Z' || ch == '-')  offset = true;
-                }
-                readBegin -= 1;
-                return offset ? Optional.of(TomlToken.DATETIME) : Optional.of(TomlToken.LOCALDATETIME);
-            } else {
-                // local-date 1979-05-27
-                readBegin -= 2;
+        if (n == 4 && ch == '-') {
+            // Offset Date-Time
+            //  1979-05-27T07:32:00Z, 1979-05-27T00:32:00-07:00, 1979-05-27T00:32:00.5-07:00,
+            //  1979-05-27T00:32:00.999999-07:00, 1979-05-27 07:32:00Z, 1979-05-27 07:32Z, 1979-05-27 07:32-07:00
+            // Local Date-Time
+            //  1979-05-27T07:32:00, 1979-05-27T07:32:00.5, 1979-05-27T00:32:00.999999, 1979-05-27T07:32
+            // Local Date
+            //  1979-05-27
+            boolean offset = false;
+            while (('0' <= ch && ch <= '9') || ch == '-' || ch == ':' || ch == '.' || ch == ' ' || ch == 'T' || ch == 't' || ch == 'Z' || ch == '+') {
+                if (n == 7 && ch != '-') throw expectedChar(ch, '-');
+                if (n == 10 && ch != ' ' && ch != 'T') throw expectedChar(ch, 'T');
+                if (n == 13 && ch != ':') throw expectedChar(ch, ':');
+                if (!offset && ch == 'Z') offset = true;
+                if (!offset && ch == '-' && n > 10) offset = true;
+                if (n > 10 && ch == ' ') break;
+                n++;
+                ch = readNumberChar();
+            }
+
+            storeEnd = readBegin--;
+            if (ch == ' ') storeEnd--;
+            if (n < 12) {
                 return Optional.of(TomlToken.LOCALDATE);
+            } else if (offset) {
+                return Optional.of(TomlToken.DATETIME);
+            } else {
+                return Optional.of(TomlToken.LOCALDATETIME);
             }
         }
-        readBegin = readBeginPin;
+
+        if (ch == -1) readBegin++;
+        readBegin -= n;
         return Optional.empty();
     }
 
@@ -560,8 +582,7 @@ public class TomlTokenizer implements Closeable {
                 // need to fill the buffer
                 int len = fillBuf();
                 if (len == -1) {
-                    readBegin = storeEnd;
-                    readEnd = storeEnd;
+                    readBegin = readEnd = storeEnd;
                     return -1;
                 }
                 assert len != 0;
@@ -693,6 +714,10 @@ public class TomlTokenizer implements Closeable {
 
     LocalTime getLocalTime() {
         return LocalTime.parse(new String(buf, storeBegin, storeEnd - storeBegin));
+    }
+
+    LocalDate getLocalDate() {
+        return LocalDate.parse(new String(buf, storeBegin, storeEnd - storeBegin));
     }
 
     // returns true for common integer values (1-9 digits).
