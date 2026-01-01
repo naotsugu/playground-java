@@ -5,6 +5,7 @@ import java.io.StringReader;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
 
 import static com.mammb.code.toml.impl.TomlTokenizerAssertions.assertNext;
 
@@ -32,6 +33,14 @@ public class TomlTokenizerDateTimeTest {
         assertNext(tokenizer, TomlToken.STRING, "ldt1");
         assertNext(tokenizer, TomlToken.EQUALS);
         assertNext(tokenizer, TomlToken.LOCALDATETIME, LocalDateTime.parse("1979-05-27T07:32:00"));
+    }
+
+    @Test
+    void offsetDateTime() {
+        var tokenizer = new TomlTokenizer(new StringReader("odt1 = 1979-05-27T07:32:00Z"));
+        assertNext(tokenizer, TomlToken.STRING, "odt1");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.DATETIME, OffsetDateTime.parse("1979-05-27T07:32:00Z"));
     }
 
 }
