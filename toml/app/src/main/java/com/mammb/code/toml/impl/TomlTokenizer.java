@@ -178,7 +178,7 @@ public class TomlTokenizer implements Closeable {
 
     int readSkipWhite() {
         int ch = read();
-        while (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r') {
+        while (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '#') {
             if (ch == '\r') {
                 bareKeyAllowed = true;
                 lineNo++;
@@ -194,7 +194,11 @@ public class TomlTokenizer implements Closeable {
                 lineNo++;
                 lastLineOffset = bufferOffset + readBegin;
             }
-            ch = read();
+            if (ch == '#') {
+                while ((ch = read()) != '\n') { }
+            } else {
+                ch = read();
+            }
         }
         return ch;
     }

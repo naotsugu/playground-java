@@ -127,4 +127,19 @@ class TomlTokenizerTest {
         assertNext(tokenizer, TomlToken.STRING, "blank");
     }
 
+    @Test void comment() {
+        var tokenizer = new TomlTokenizer(new StringReader("""
+            # This is a full-line comment
+            key = "value"  # This is a comment at the end of a line
+            another = "# This is not a comment"
+            """));
+        assertNext(tokenizer, TomlToken.STRING, "key");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.STRING, "value");
+        assertNext(tokenizer, TomlToken.STRING, "another");
+        assertNext(tokenizer, TomlToken.EQUALS);
+        assertNext(tokenizer, TomlToken.STRING, "# This is not a comment");
+    }
+
+
 }
