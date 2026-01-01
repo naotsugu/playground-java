@@ -4,7 +4,9 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.time.LocalTime;
 import java.util.Arrays;
+import java.util.Optional;
 
 public class TomlTokenizer implements Closeable {
 
@@ -169,29 +171,6 @@ public class TomlTokenizer implements Closeable {
         return true;
     }
 
-    private boolean matchPeekAny(int... chs) {
-        int localReadBegin = readBegin;
-        try {
-            if (localReadBegin == readEnd) {
-                // need to fill the buffer
-                int len = fillBuf();
-                if (len == -1) {
-                    return false;
-                }
-                assert len != 0;
-                localReadBegin = storeEnd;
-                readEnd = readBegin + len;
-            }
-            int c = buf[localReadBegin];
-            for (int ch : chs) {
-                if (ch == c) return true;
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return false;
-    }
-
     int readSkipWhite() {
         int ch = read();
         while (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r') {
@@ -327,12 +306,14 @@ public class TomlTokenizer implements Closeable {
                 throw unexpectedChar(ch);
             } else if (ch == '\\') {
                 inPlace = false;
-                if (matchPeekAny(' ', '\t', '\r', '\n')) {
+                int n = read();
+                if (n == ' ' || n == '\t' || n == '\r' || n == '\n') {
                     // it will be trimmed along with all whitespace (including newlines)
                     // up to the next non-whitespace character or closing delimiter.
                     while ((ch = read()) != -1 && (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')) { }
                     readBegin--;
                 } else {
+                    readBegin--;
                     unescape();
                 }
             } else {
@@ -410,6 +391,10 @@ public class TomlTokenizer implements Closeable {
 
     private TomlToken readNumber(int ch)  {
 
+        // date time
+        var maybe = readDateTimeOr(ch);
+        if (maybe.isPresent()) return maybe.get();
+
         storeBegin = storeEnd = readBegin - 1;
 
         // sign
@@ -434,10 +419,10 @@ public class TomlTokenizer implements Closeable {
 
         // int
         if (ch == '0') {
-            ch = readNumberChar();
+            ch = readNumberCharSkipUnderscore();
         } else {
             do {
-                ch = readNumberChar();
+                ch = readNumberCharSkipUnderscore();
             } while (ch >= '0' && ch <= '9');
         }
 
@@ -446,7 +431,7 @@ public class TomlTokenizer implements Closeable {
             this.fracOrExp = true;
             int count = 0;
             do {
-                ch = readNumberChar();
+                ch = readNumberCharSkipUnderscore();
                 count++;
             } while (ch >= '0' && ch <= '9');
             if (count == 1) {
@@ -463,7 +448,7 @@ public class TomlTokenizer implements Closeable {
             }
             int count;
             for (count = 0; ch >= '0' && ch <= '9'; count++) {
-                ch = readNumberChar();
+                ch = readNumberCharSkipUnderscore();
             }
             if (count == 0) {
                 throw unexpectedChar(ch);
@@ -481,14 +466,16 @@ public class TomlTokenizer implements Closeable {
     // reads from the buffer. Otherwise, uses read() which takes care
     // of resizing, filling up the buf, adjusting the pointers
     private int readNumberChar() {
-        int ch;
         if (readBegin < readEnd) {
-            ch = buf[readBegin++];
+            return buf[readBegin++];
         } else {
             storeEnd = readBegin;
-            ch = read();
+            return read();
         }
-        return (ch == '_') ? readNumberChar() : ch;
+    }
+    private int readNumberCharSkipUnderscore() {
+        int ch = readNumberChar();
+        return (ch == '_') ? readNumberCharSkipUnderscore() : ch;
     }
 
     private TomlToken readTrue() {
@@ -529,12 +516,52 @@ public class TomlTokenizer implements Closeable {
         return TomlToken.NAN;
     }
 
+    private Optional<TomlToken> readDateTimeOr(int ch) {
+
+        if ('0' > ch || ch > '9') {
+            return Optional.empty();
+        }
+
+        storeBegin = storeEnd = readBegin - 1;
+        int readBeginPin = readBegin;
+        int ch1 = readNumberChar(), ch2 = readNumberChar();
+        if ('0' <= ch && ch <= '2' && '0' <= ch1 && ch1 <= '9' && ch2 == ':') {
+            // local-time = time-hour ":" time-minute [ ":" time-second [ time-secfrac ] ]
+            //   07:32:00, 00:32:00.5, 00:32:00.999999, 07:32
+            while ((ch = readNumberChar()) != -1 && (('0' <= ch && ch <= '9') || ch == ':' || ch == '.')) { }
+            storeEnd = readBegin--;
+            return Optional.of(TomlToken.TIME);
+        }
+
+        int y2 = ch2, y3 = read(), ym = read(), m1 = read(), m2 = read(), md = read(), d1 = read(), d2 = read();
+        if ('0' <= y2 && y2 <= '9' && '0' <= y3 && y3 <= '9' && ym == '-' && '0' <= m1 && m1 <= '1' && '0' <= m2 && m2 <= '9' &&
+            md == '-' && '0' <= d1 && d1 <= '3' && '0' <= d2 && d2 <= '9') {
+            int td = read(), th1 = read();
+            if ((td == ' ' || td == 'T'|| td == 't') && '0' <= th1 && th1 <= '2') {
+                boolean offset = false;
+                while ((ch = read()) != -1 && (('0' <= ch && ch <= '9') || ch == ':' || ch == '.' || ch == '-' || ch == 'Z')) {
+                    if (ch == 'Z' || ch == '-')  offset = true;
+                }
+                readBegin -= 1;
+                return offset ? Optional.of(TomlToken.DATETIME) : Optional.of(TomlToken.LOCALDATETIME);
+            } else {
+                // local-date 1979-05-27
+                readBegin -= 2;
+                return Optional.of(TomlToken.LOCALDATE);
+            }
+        }
+        readBegin = readBeginPin;
+        return Optional.empty();
+    }
+
     private int read() {
         try {
             if (readBegin == readEnd) {
                 // need to fill the buffer
                 int len = fillBuf();
                 if (len == -1) {
+                    readBegin = storeEnd;
+                    readEnd = storeEnd;
                     return -1;
                 }
                 assert len != 0;
@@ -554,11 +581,33 @@ public class TomlTokenizer implements Closeable {
                 // there is some store data
                 if (storeLen == buf.length) {
                     // buffer is full, double the capacity
+                    //  --------------------
+                    //  |                  |
+                    //  --------------------
+                    //  ^                  ^ storeEnd
+                    //  storeBegin
+                    //
+                    //  ---------------------------------------
+                    //  |                  |                  |
+                    //  ---------------------------------------
+                    //  ^                  ^ storeEnd
+                    //  storeBegin
                     char[] doubleBuf = Arrays.copyOf(buf, 2 * buf.length);
                     bufferPool.recycle(buf);
                     buf = doubleBuf;
                 } else {
                     // left shift all the stored data to make space
+                    //  --------------------
+                    //  |     |******|     |
+                    //  --------------------
+                    //        ^      ^
+                    //  storeBegin  storeEnd
+                    //
+                    //  --------------------
+                    //  |******|           |
+                    //  --------------------
+                    //  ^      ^ storeEnd
+                    //  storeBegin
                     System.arraycopy(buf, storeBegin, buf, 0, storeLen);
                     storeEnd = storeLen;
                     storeBegin = 0;
@@ -572,6 +621,11 @@ public class TomlTokenizer implements Closeable {
             bufferOffset += readBegin;
         }
         // fill the rest of the buf
+        //  --------------------      --------------------
+        //  |******|           |  ->  |******|***********|
+        //  --------------------      --------------------
+        //  ^      ^ storeEnd
+        //  storeBegin
         return reader.read(buf, storeEnd, buf.length - storeEnd);
     }
 
@@ -637,6 +691,10 @@ public class TomlTokenizer implements Closeable {
         }
     }
 
+    LocalTime getLocalTime() {
+        return LocalTime.parse(new String(buf, storeBegin, storeEnd - storeBegin));
+    }
+
     // returns true for common integer values (1-9 digits).
     // So there are cases it will return false even though the number is int
     boolean isDefinitelyInt() {
@@ -662,16 +720,6 @@ public class TomlTokenizer implements Closeable {
             bufferPool.recycle(buf);
             closed = true;
         }
-    }
-
-    private static boolean isWsChar(int ch) {
-        // wschar =  %x20  ; Space
-        // wschar =/ %x09  ; Horizontal tab
-        return ch == ' ' || ch == '\t';
-    }
-
-    private static boolean isNewLineChar(int ch) {
-        return ch == '\r' || ch == '\n';
     }
 
     // Table to look up hex ch -> value (for e.g., HEX['F'] = 15, HEX['5'] = 5)
