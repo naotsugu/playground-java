@@ -1,11 +1,11 @@
 package com.mammb.code.toml.impl;
 
 import com.mammb.code.toml.api.TomlParser;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-
 
 public class TomlParserImpl implements TomlParser {
 
@@ -32,19 +32,34 @@ public class TomlParserImpl implements TomlParser {
 
     @Override
     public Event next() {
-        // TODO
-        return null;
+        if (!hasNext()) throw new NoSuchElementException();
+        return currentEvent = currentContext.getNextEvent();
+    }
+
+    @Override
+    public Event currentEvent() {
+        return currentEvent;
     }
 
     @Override
     public String getString() {
-        // TODO
-        return "";
+        return switch (currentEvent) {
+            case KEY_NAME, VALUE_STRING, VALUE_INTEGER, VALUE_FLOAT -> tokenizer.getValue();
+            default -> throw new IllegalStateException(
+                "TomlParser#getString() is invalid parser states. current parser state is %s".formatted(currentEvent));
+        };
     }
 
     @Override
     public void close() {
-        // TODO
+        if (!closed) {
+            try {
+                tokenizer.close();
+                closed = true;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
 

@@ -18,6 +18,7 @@ public interface TomlParser extends Closeable {
 
     boolean hasNext();
     Event next();
+    Event currentEvent();
     String getString();
     @Override
     void close();

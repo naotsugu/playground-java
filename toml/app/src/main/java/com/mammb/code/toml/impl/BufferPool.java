@@ -34,8 +34,7 @@ public interface BufferPool {
                 WeakReference<ConcurrentLinkedQueue<char[]>> q = queue;
                 if (q != null) {
                     ConcurrentLinkedQueue<char[]> d = q.get();
-                    if (d != null)
-                        return d;
+                    if (d != null) return d;
                 }
 
                 // overwrite the queue
