@@ -11,7 +11,6 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.stream.IntStream;
 
 public class TomlTokenizer implements Closeable {
 
@@ -53,10 +52,14 @@ public class TomlTokenizer implements Closeable {
     private boolean fracOrExp;
     private BigDecimal bd;
 
-    TomlTokenizer(Reader reader) {
+    TomlTokenizer(Reader reader, BufferPool bufferPool) {
         this.reader = reader;
-        this.bufferPool = BufferPool.defaultPool();
+        this.bufferPool = bufferPool;
         this.buf = bufferPool.take();
+    }
+
+    TomlTokenizer(Reader reader) {
+        this(reader, BufferPool.defaultPool());
     }
 
     TomlToken nextToken() {
