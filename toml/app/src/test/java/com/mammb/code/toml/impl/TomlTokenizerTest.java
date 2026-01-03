@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import java.io.StringReader;
 
 import static com.mammb.code.toml.impl.TomlTokenizerAssertions.assertNext;
-import static org.junit.jupiter.api.Assertions.*;
 
 class TomlTokenizerTest {
 

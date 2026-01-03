@@ -1,5 +1,7 @@
 package com.mammb.code.toml.impl;
 
+import com.mammb.code.toml.impl.TomlToken;
+import com.mammb.code.toml.impl.TomlTokenizer;
 import org.junit.jupiter.api.Test;
 import java.io.StringReader;
 

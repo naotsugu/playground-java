@@ -1,4 +1,4 @@
-package com.mammb.code.toml.api;
+package com.mammb.code.toml2.api;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;

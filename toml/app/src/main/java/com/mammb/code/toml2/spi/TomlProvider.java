@@ -1,6 +1,6 @@
-package com.mammb.code.toml.spi;
+package com.mammb.code.toml2.spi;
 
-import com.mammb.code.toml.api.TomlReader;
+import com.mammb.code.toml2.api.TomlReader;
 import java.io.InputStream;
 import java.util.Iterator;
 import java.util.ServiceLoader;

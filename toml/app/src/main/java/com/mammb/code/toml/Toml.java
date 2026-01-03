@@ -1,12 +1,14 @@
-package com.mammb.code.toml.api;
+package com.mammb.code.toml;
 
-import com.mammb.code.toml.spi.TomlProvider;
+import com.mammb.code.toml.impl.TomlReaderImpl;
 import java.io.InputStream;
 
 public final class Toml {
+
     private Toml() { }
 
     public static TomlReader createReader(InputStream in) {
-        return TomlProvider.provider().createReader(in);
+        return new TomlReaderImpl(in);
     }
+
 }

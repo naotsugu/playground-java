@@ -1,9 +1,9 @@
-package com.mammb.code.toml.impl;
+package com.mammb.code.toml2.impl;
 
 import java.lang.ref.WeakReference;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-interface BufferPool {
+public interface BufferPool {
 
     char[] take();
 

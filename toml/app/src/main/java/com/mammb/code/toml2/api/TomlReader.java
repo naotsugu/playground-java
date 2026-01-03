@@ -1,7 +1,7 @@
-package com.mammb.code.toml.api;
+package com.mammb.code.toml2.api;
 
 import java.io.Closeable;
-import com.mammb.code.toml.api.TomlValue.*;
+import com.mammb.code.toml2.api.TomlValue.*;
 
 public interface TomlReader extends Closeable {
 

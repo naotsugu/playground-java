@@ -1,4 +1,4 @@
-package com.mammb.code.toml.impl;
+package com.mammb.code.toml2.impl;
 
 import java.util.Collections;
 import java.util.Map;

@@ -1,4 +1,4 @@
-package com.mammb.code.toml.impl;
+package com.mammb.code.toml2.impl;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -12,7 +12,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Optional;
 
-class TomlTokenizer implements Closeable {
+public class TomlTokenizer implements Closeable {
 
     private final Reader reader;
     private final BufferPool bufferPool;
@@ -108,7 +108,7 @@ class TomlTokenizer implements Closeable {
     private boolean isBareKeyChar(int ch) {
         // unquoted-key = 1*( ALPHA / DIGIT / %x2D / %x5F ) ; A-Z / a-z / 0-9 / - / _
         return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
-            (ch >= '0' && ch <= '9') || ch == '_' || ch == '-';
+               (ch >= '0' && ch <= '9') || ch == '_' || ch == '-';
     }
 
     boolean hasNextToken() {
@@ -792,5 +792,4 @@ class TomlTokenizer implements Closeable {
     private RuntimeException expectedChar(int unexpected, char expected) {
         return new RuntimeException("tokenizer.expected.char [" + unexpected + "], expected [" + expected + "]");
     }
-
 }

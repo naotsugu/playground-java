@@ -1,4 +1,4 @@
-package com.mammb.code.toml.impl;
+package com.mammb.code.toml2.impl;
 
 public interface TomlConfig {
 

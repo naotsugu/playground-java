@@ -1,8 +1,8 @@
-package com.mammb.code.toml.impl;
+package com.mammb.code.toml2.impl;
 
-import com.mammb.code.toml.api.TomlArrayBuilder;
-import com.mammb.code.toml.api.TomlObjectBuilder;
-import com.mammb.code.toml.api.TomlValue;
+import com.mammb.code.toml2.api.TomlArrayBuilder;
+import com.mammb.code.toml2.api.TomlObjectBuilder;
+import com.mammb.code.toml2.api.TomlValue;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;

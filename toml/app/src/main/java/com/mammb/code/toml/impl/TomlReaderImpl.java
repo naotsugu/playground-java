@@ -1,38 +1,25 @@
 package com.mammb.code.toml.impl;
 
-import com.mammb.code.toml.api.TomlReader;
-import com.mammb.code.toml.api.TomlValue;
+import com.mammb.code.toml.TomlParser;
+import com.mammb.code.toml.TomlReader;
+import java.io.IOException;
 import java.io.InputStream;
 
 public class TomlReaderImpl implements TomlReader {
 
-    private final TomlParserImpl parser;
+    private final BufferPool bufferPool;
+    private final TomlParser parser;
     private boolean readDone;
 
-    TomlReaderImpl(InputStream in, TomlContext context) {
-        parser = new TomlParserImpl(in, context);
+    public TomlReaderImpl(InputStream in) {
+        bufferPool = BufferPool.defaultPool();
+        parser = new TomlParserImpl(in, bufferPool);
     }
 
     @Override
-    public TomlValue.TomlStructure read() {
-        // TODO
-        return null;
+    public void close() throws IOException {
+        readDone = true;
+        parser.close();
     }
 
-    @Override
-    public TomlValue.TomlObject readObject() {
-        // TODO
-        return null;
-    }
-
-    @Override
-    public TomlValue.TomlArray readArray() {
-        // TODO
-        return null;
-    }
-
-    @Override
-    public void close() {
-        // TODO
-    }
 }

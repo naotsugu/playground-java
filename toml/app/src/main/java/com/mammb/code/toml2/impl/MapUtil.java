@@ -1,6 +1,6 @@
-package com.mammb.code.toml.impl;
+package com.mammb.code.toml2.impl;
 
-import com.mammb.code.toml.api.TomlValue;
+import com.mammb.code.toml2.api.TomlValue;
 
 public final class MapUtil {
 
