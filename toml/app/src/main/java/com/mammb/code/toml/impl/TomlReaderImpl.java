@@ -2,6 +2,7 @@ package com.mammb.code.toml.impl;
 
 import com.mammb.code.toml.TomlParser;
 import com.mammb.code.toml.TomlReader;
+import com.mammb.code.toml.TomlValue.*;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -14,6 +15,20 @@ public class TomlReaderImpl implements TomlReader {
     public TomlReaderImpl(InputStream in) {
         bufferPool = BufferPool.defaultPool();
         parser = new TomlParserImpl(in, bufferPool);
+    }
+
+    public TomlObject readObject() {
+        if (readDone) throw new IllegalStateException("readObject method is already called.");
+        readDone = true;
+        if (parser.hasNext()) {
+            try {
+                parser.next();
+                return parser.getObject();
+            } catch (IllegalStateException ise) {
+                throw new JsonParsingException(ise.getMessage(), ise, parser.getLastCharLocation());
+            }
+        }
+        throw new JsonException(JsonMessages.INTERNAL_ERROR());
     }
 
     @Override
