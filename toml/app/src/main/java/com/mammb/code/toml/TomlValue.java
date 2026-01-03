@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -24,5 +25,7 @@ public interface TomlValue {
 
     TomlValue TRUE = new TomlBoolean(true);
     TomlValue FALSE = new TomlBoolean(false);
+    TomlArray EMPTY_ARRAY = new TomlArray(Collections.emptyList());
+    TomlObject EMPTY_OBJECT = new TomlObject(Collections.emptyMap());
 
 }
