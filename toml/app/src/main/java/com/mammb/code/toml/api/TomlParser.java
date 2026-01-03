@@ -1,6 +1,8 @@
 package com.mammb.code.toml.api;
 
 import java.io.Closeable;
+import java.math.BigDecimal;
+import com.mammb.code.toml.api.TomlValue.*;
 
 public interface TomlParser extends Closeable {
     enum Event {
@@ -20,6 +22,11 @@ public interface TomlParser extends Closeable {
     Event next();
     Event currentEvent();
     String getString();
+    int getInt();
+    long getLong();
+    BigDecimal getBigDecimal();
+    TomlArray getArray();
+    TomlObject getObject();
     @Override
     void close();
 }

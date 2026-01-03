@@ -1,11 +1,14 @@
 package com.mammb.code.toml.impl;
 
 import com.mammb.code.toml.api.TomlParser;
+import com.mammb.code.toml.api.TomlValue;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.math.BigDecimal;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import com.mammb.code.toml.api.TomlValue.*;
 
 public class TomlParserImpl implements TomlParser {
 
@@ -26,8 +29,17 @@ public class TomlParserImpl implements TomlParser {
 
     @Override
     public boolean hasNext() {
-        // TODO
-        return false;
+        if (stack.isEmpty() && (currentEvent != null && currentEvent.compareTo(Event.KEY_NAME) > 0)) {
+            TomlToken token = tokenizer.nextToken();
+            if (token != TomlToken.EOF) {
+                throw new RuntimeException("Expected EOF token");
+            }
+            return false;
+        } else if (!stack.isEmpty() && !tokenizer.hasNextToken()) {
+            currentEvent = currentContext.getNextEvent();
+            return false;
+        }
+        return true;
     }
 
     @Override
@@ -48,6 +60,52 @@ public class TomlParserImpl implements TomlParser {
             default -> throw new IllegalStateException(
                 "TomlParser#getString() is invalid parser states. current parser state is %s".formatted(currentEvent));
         };
+    }
+
+    @Override
+    public int getInt() {
+        if (currentEvent != Event.VALUE_INTEGER) throw new IllegalStateException(
+                "JsonParser#getInt() is invalid parser state. current parser state is %s".formatted(currentEvent));
+        return tokenizer.getInt();
+    }
+
+    @Override
+    public long getLong() {
+        if (currentEvent != Event.VALUE_INTEGER) throw new IllegalStateException(
+            "JsonParser#getLong() is invalid parser state. current parser state is %s".formatted(currentEvent));
+        return tokenizer.getLong();
+    }
+
+    @Override
+    public BigDecimal getBigDecimal() {
+        if (currentEvent != Event.VALUE_INTEGER) throw new IllegalStateException(
+            "JsonParser#getBigDecimal() is invalid parser state. current parser state is %s".formatted(currentEvent));
+        return tokenizer.getBigDecimal();
+    }
+
+    @Override
+    public TomlArray getArray() {
+        if (currentEvent != Event.START_ARRAY) throw new IllegalStateException(
+            "JsonParser#getArray() is invalid parser state. current parser state is %s".formatted(currentEvent));
+        return getArray(new TomlArrayBuilderImpl(tomlContext));
+    }
+
+    private TomlArray getArray(TomlArrayBuilder builder) {
+        while(hasNext()) {
+            TomlParser.Event e = next();
+            if (e == TomlParser.Event.END_ARRAY) {
+                return builder.build();
+            }
+            builder.add(getValue());
+        }
+        throw parsingException(TomlToken.EOF, "[CURLYOPEN, SQUAREOPEN, STRING, NUMBER, TRUE, FALSE, NULL, SQUARECLOSE]");
+    }
+
+    @Override
+    public TomlObject getObject() {
+        if (currentEvent != Event.START_OBJECT) throw new IllegalStateException(
+            "JsonParser#getObject() is invalid parser state. current parser state is %s".formatted(currentEvent));
+        return getObject(new TomlObjectBuilderImpl(tomlContext));
     }
 
     @Override
