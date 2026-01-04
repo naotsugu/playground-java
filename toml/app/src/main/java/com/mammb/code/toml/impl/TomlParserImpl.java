@@ -1,12 +1,16 @@
 package com.mammb.code.toml.impl;
 
+import com.mammb.code.toml.TomlObjectBuilder;
 import com.mammb.code.toml.TomlParser;
+import com.mammb.code.toml.TomlValue;
+import com.mammb.code.toml.TomlValue.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+
 
 class TomlParserImpl implements TomlParser {
 
@@ -45,6 +49,44 @@ class TomlParserImpl implements TomlParser {
     public Event next() {
         if (!hasNext()) throw new NoSuchElementException();
         return currentEvent = currentContext.getNextEvent();
+    }
+
+    @Override
+    public TomlObject getObject() {
+        if (currentEvent != Event.START_OBJECT) {
+            throw new IllegalStateException("invalid parser state[%s].".formatted(currentEvent));
+        }
+        return getObject(new TomlObjectBuilder());
+    }
+
+    private TomlObject getObject(TomlObjectBuilder builder) {
+        while (hasNext()) {
+            TomlParser.Event e = next();
+            if (e == Event.END_OBJECT) {
+                return builder.build();
+            }
+            String key = getString();
+            next();
+            builder.add(key, getValue());
+        }
+        throw parsingException(TomlToken.EOF, "[STRING, CURLYCLOSE]");
+    }
+
+    public String getString() {
+        if (currentEvent == Event.KEY_NAME || currentEvent == Event.VALUE_STRING ||
+            currentEvent == Event.VALUE_INTEGER || currentEvent == Event.VALUE_FLOAT) {
+            return tokenizer.getValue();
+        }
+        throw new IllegalStateException("invalid parser states[%s].".formatted(currentEvent));
+    }
+
+    public TomlValue getValue() {
+        return switch (currentEvent) {
+            // TODO
+            case VALUE_TRUE -> TomlValue.TRUE;
+            case VALUE_FALSE -> TomlValue.FALSE;
+            default -> null;
+        };
     }
 
     @Override

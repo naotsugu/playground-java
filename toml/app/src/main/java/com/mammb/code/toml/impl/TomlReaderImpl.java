@@ -24,11 +24,11 @@ public class TomlReaderImpl implements TomlReader {
             try {
                 parser.next();
                 return parser.getObject();
-            } catch (IllegalStateException ise) {
-                throw new JsonParsingException(ise.getMessage(), ise, parser.getLastCharLocation());
+            } catch (IllegalStateException e) {
+                throw new RuntimeException(e);
             }
         }
-        throw new JsonException(JsonMessages.INTERNAL_ERROR());
+        throw new RuntimeException("Internal Error");
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.mammb.code.toml;
 
 import java.io.Closeable;
+import com.mammb.code.toml.TomlValue.*;
 
 public interface TomlParser extends Closeable {
 
@@ -23,5 +24,5 @@ public interface TomlParser extends Closeable {
 
     boolean hasNext();
     Event next();
-
+    TomlObject getObject();
 }
