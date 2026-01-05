@@ -52,6 +52,7 @@ class TomlTokenizer implements Closeable {
     private boolean fracOrExp;
     private BigDecimal bd;
 
+
     TomlTokenizer(Reader reader, BufferPool bufferPool) {
         this.reader = reader;
         this.bufferPool = bufferPool;
