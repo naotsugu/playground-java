@@ -13,7 +13,7 @@ public class TomlTokenizerInlineTableTest {
         assertNext(tokenizer, TomlToken.STRING, "name");
         assertNext(tokenizer, TomlToken.EQUALS);
 
-        assertNext(tokenizer, TomlToken.CURLYOPEN);
+        assertNext(tokenizer, TomlToken.CURLY_OPEN);
         assertNext(tokenizer, TomlToken.STRING, "first");
         assertNext(tokenizer, TomlToken.EQUALS);
         assertNext(tokenizer, TomlToken.STRING, "Tom");
@@ -21,7 +21,7 @@ public class TomlTokenizerInlineTableTest {
         assertNext(tokenizer, TomlToken.STRING, "last");
         assertNext(tokenizer, TomlToken.EQUALS);
         assertNext(tokenizer, TomlToken.STRING, "Preston-Werner");
-        assertNext(tokenizer, TomlToken.CURLYCLOSE);
+        assertNext(tokenizer, TomlToken.CURLY_CLOSE);
     }
 
     @Test void intValue() {
@@ -30,7 +30,7 @@ public class TomlTokenizerInlineTableTest {
         assertNext(tokenizer, TomlToken.STRING, "point");
         assertNext(tokenizer, TomlToken.EQUALS);
 
-        assertNext(tokenizer, TomlToken.CURLYOPEN);
+        assertNext(tokenizer, TomlToken.CURLY_OPEN);
         assertNext(tokenizer, TomlToken.STRING, "x");
         assertNext(tokenizer, TomlToken.EQUALS);
         assertNext(tokenizer, TomlToken.INTEGER, 1);
@@ -38,7 +38,7 @@ public class TomlTokenizerInlineTableTest {
         assertNext(tokenizer, TomlToken.STRING, "y");
         assertNext(tokenizer, TomlToken.EQUALS);
         assertNext(tokenizer, TomlToken.INTEGER, 2);
-        assertNext(tokenizer, TomlToken.CURLYCLOSE);
+        assertNext(tokenizer, TomlToken.CURLY_CLOSE);
     }
 
     @Test void dottedKey() {
@@ -47,13 +47,13 @@ public class TomlTokenizerInlineTableTest {
         assertNext(tokenizer, TomlToken.STRING, "animal");
         assertNext(tokenizer, TomlToken.EQUALS);
 
-        assertNext(tokenizer, TomlToken.CURLYOPEN);
+        assertNext(tokenizer, TomlToken.CURLY_OPEN);
         assertNext(tokenizer, TomlToken.STRING, "type");
         assertNext(tokenizer, TomlToken.DOT);
         assertNext(tokenizer, TomlToken.STRING, "name");
         assertNext(tokenizer, TomlToken.EQUALS);
         assertNext(tokenizer, TomlToken.STRING, "pug");
-        assertNext(tokenizer, TomlToken.CURLYCLOSE);
+        assertNext(tokenizer, TomlToken.CURLY_CLOSE);
     }
 
 }

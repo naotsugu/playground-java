@@ -24,7 +24,7 @@ public class TomlTokenizerDateTimeTest {
         var tokenizer = new TomlTokenizer(new StringReader("ld1 = 1979-05-27"));
         assertNext(tokenizer, TomlToken.STRING, "ld1");
         assertNext(tokenizer, TomlToken.EQUALS);
-        assertNext(tokenizer, TomlToken.LOCALDATE, LocalDate.parse("1979-05-27"));
+        assertNext(tokenizer, TomlToken.LOCAL_DATE, LocalDate.parse("1979-05-27"));
     }
 
     @Test
@@ -32,7 +32,7 @@ public class TomlTokenizerDateTimeTest {
         var tokenizer = new TomlTokenizer(new StringReader("ldt1 = 1979-05-27T07:32:00"));
         assertNext(tokenizer, TomlToken.STRING, "ldt1");
         assertNext(tokenizer, TomlToken.EQUALS);
-        assertNext(tokenizer, TomlToken.LOCALDATETIME, LocalDateTime.parse("1979-05-27T07:32:00"));
+        assertNext(tokenizer, TomlToken.LOCAL_DATETIME, LocalDateTime.parse("1979-05-27T07:32:00"));
     }
 
     @Test

@@ -77,10 +77,10 @@ class TomlTokenizer implements Closeable {
             case '=' -> TomlToken.EQUALS;
             case '.' -> TomlToken.DOT;
             case ',' -> TomlToken.COMMA;
-            case '{' -> TomlToken.CURLYOPEN;
-            case '}' -> TomlToken.CURLYCLOSE;
-            case '[' -> TomlToken.SQUAREOPEN;
-            case ']' -> TomlToken.SQUARECLOSE;
+            case '{' -> TomlToken.CURLY_OPEN;
+            case '}' -> TomlToken.CURLY_CLOSE;
+            case '[' -> TomlToken.SQUARE_OPEN;
+            case ']' -> TomlToken.SQUARE_CLOSE;
             case 't' -> readTrue();
             case 'f' -> readFalse();
             case -1  -> TomlToken.EOF;
@@ -574,14 +574,14 @@ class TomlTokenizer implements Closeable {
             if (ch == ' ') storeEnd--;
 
             if (n < 12) {
-                return Optional.of(TomlToken.LOCALDATE);
+                return Optional.of(TomlToken.LOCAL_DATE);
             }
 
             buf[storeBegin + 10] = 'T';
             if (offset) {
                 return Optional.of(TomlToken.DATETIME);
             } else {
-                return Optional.of(TomlToken.LOCALDATETIME);
+                return Optional.of(TomlToken.LOCAL_DATETIME);
             }
         }
 

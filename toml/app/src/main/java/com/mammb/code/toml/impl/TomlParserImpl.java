@@ -100,8 +100,6 @@ class TomlParserImpl implements TomlParser {
         }
     }
 
-    // Using the optimized stack impl as we don't require other things
-    // like iterator etc.
     private static final class Stack {
         int size = 0;
         final int limit;
@@ -120,9 +118,7 @@ class TomlParserImpl implements TomlParser {
         }
 
         private Context pop() {
-            if (head == null) {
-                throw new NoSuchElementException();
-            }
+            if (head == null) throw new NoSuchElementException();
             size--;
             Context temp = head;
             head = head.next;
@@ -150,11 +146,11 @@ class TomlParserImpl implements TomlParser {
                     case FALSE -> Event.VALUE_FALSE;
                     default -> null;
                 };
-            } else if (token == TomlToken.CURLYOPEN) {
+            } else if (token == TomlToken.CURLY_OPEN) {
                 stack.push(currentContext);
                 currentContext = new ObjectContext();
                 return Event.START_OBJECT;
-            } else if (token == TomlToken.SQUAREOPEN) {
+            } else if (token == TomlToken.SQUARE_OPEN) {
                 stack.push(currentContext);
                 currentContext = new ArrayContext();
                 return Event.START_ARRAY;
@@ -221,7 +217,7 @@ class TomlParserImpl implements TomlParser {
 
     private final class ObjectContext extends SkippingContext {
         private ObjectContext() {
-            super(TomlToken.CURLYOPEN, TomlToken.CURLYCLOSE);
+            super(TomlToken.CURLY_OPEN, TomlToken.CURLY_CLOSE);
         }
 
         /*
@@ -256,7 +252,7 @@ class TomlParserImpl implements TomlParser {
                 throw parsingException(token, "[CURLYOPEN, SQUAREOPEN, STRING, NUMBER, TRUE, FALSE, NULL]");
             } else {
                 // Handle 1. }   2. name   3. ,name
-                if (token == TomlToken.CURLYCLOSE) {
+                if (token == TomlToken.CURLY_CLOSE) {
                     currentContext = stack.pop();
                     return Event.END_OBJECT;
                 }
@@ -273,7 +269,7 @@ class TomlParserImpl implements TomlParser {
     private final class ArrayContext extends SkippingContext {
 
         private ArrayContext() {
-            super(TomlToken.SQUAREOPEN, TomlToken.SQUARECLOSE);
+            super(TomlToken.SQUARE_OPEN, TomlToken.SQUARE_CLOSE);
         }
 
         // Handle 1. ]   2. value   3. ,value
@@ -284,7 +280,7 @@ class TomlParserImpl implements TomlParser {
                 throw parsingException(token, (Objects.requireNonNull(currentEvent) == Event.START_ARRAY) ?
                     "[CURLYOPEN, SQUAREOPEN, STRING, NUMBER, TRUE, FALSE, NULL]" : "[COMMA, CURLYCLOSE]");
             }
-            if (token == TomlToken.SQUARECLOSE) {
+            if (token == TomlToken.SQUARE_CLOSE) {
                 currentContext = stack.pop();
                 return Event.END_ARRAY;
             }

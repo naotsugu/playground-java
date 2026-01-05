@@ -1,7 +1,5 @@
 package com.mammb.code.toml.impl;
 
-import com.mammb.code.toml.impl.TomlToken;
-import com.mammb.code.toml.impl.TomlTokenizer;
 import org.junit.jupiter.api.Test;
 import java.io.StringReader;
 
@@ -14,13 +12,13 @@ public class TomlTokenizerArrayTest {
         var tokenizer = new TomlTokenizer(new StringReader("integers = [ 1, 2, 3 ]"));
         assertNext(tokenizer, TomlToken.STRING, "integers");
         assertNext(tokenizer, TomlToken.EQUALS);
-        assertNext(tokenizer, TomlToken.SQUAREOPEN);
+        assertNext(tokenizer, TomlToken.SQUARE_OPEN);
         assertNext(tokenizer, TomlToken.INTEGER, 1);
         assertNext(tokenizer, TomlToken.COMMA);
         assertNext(tokenizer, TomlToken.INTEGER, 2);
         assertNext(tokenizer, TomlToken.COMMA);
         assertNext(tokenizer, TomlToken.INTEGER, 3);
-        assertNext(tokenizer, TomlToken.SQUARECLOSE);
+        assertNext(tokenizer, TomlToken.SQUARE_CLOSE);
     }
 
     @Test
@@ -28,13 +26,13 @@ public class TomlTokenizerArrayTest {
         var tokenizer = new TomlTokenizer(new StringReader("colors = [ \"red\", \"yellow\", \"green\" ]"));
         assertNext(tokenizer, TomlToken.STRING, "colors");
         assertNext(tokenizer, TomlToken.EQUALS);
-        assertNext(tokenizer, TomlToken.SQUAREOPEN);
+        assertNext(tokenizer, TomlToken.SQUARE_OPEN);
         assertNext(tokenizer, TomlToken.STRING, "red");
         assertNext(tokenizer, TomlToken.COMMA);
         assertNext(tokenizer, TomlToken.STRING, "yellow");
         assertNext(tokenizer, TomlToken.COMMA);
         assertNext(tokenizer, TomlToken.STRING, "green");
-        assertNext(tokenizer, TomlToken.SQUARECLOSE);
+        assertNext(tokenizer, TomlToken.SQUARE_CLOSE);
     }
 
     @Test
@@ -42,7 +40,7 @@ public class TomlTokenizerArrayTest {
         var tokenizer = new TomlTokenizer(new StringReader("string_array = [ \"all\", 'strings', \"\"\"are the same\"\"\", '''type''' ]"));
         assertNext(tokenizer, TomlToken.STRING, "string_array");
         assertNext(tokenizer, TomlToken.EQUALS);
-        assertNext(tokenizer, TomlToken.SQUAREOPEN);
+        assertNext(tokenizer, TomlToken.SQUARE_OPEN);
         assertNext(tokenizer, TomlToken.STRING, "all");
         assertNext(tokenizer, TomlToken.COMMA);
         assertNext(tokenizer, TomlToken.STRING, "strings");
@@ -50,7 +48,7 @@ public class TomlTokenizerArrayTest {
         assertNext(tokenizer, TomlToken.STRING, "are the same");
         assertNext(tokenizer, TomlToken.COMMA);
         assertNext(tokenizer, TomlToken.STRING, "type");
-        assertNext(tokenizer, TomlToken.SQUARECLOSE);
+        assertNext(tokenizer, TomlToken.SQUARE_CLOSE);
     }
 
     @Test
@@ -58,21 +56,21 @@ public class TomlTokenizerArrayTest {
         var tokenizer = new TomlTokenizer(new StringReader("nested_arrays_of_ints = [ [ 1, 2 ], [3, 4, 5] ]"));
         assertNext(tokenizer, TomlToken.STRING, "nested_arrays_of_ints");
         assertNext(tokenizer, TomlToken.EQUALS);
-        assertNext(tokenizer, TomlToken.SQUAREOPEN);
-        assertNext(tokenizer, TomlToken.SQUAREOPEN);
+        assertNext(tokenizer, TomlToken.SQUARE_OPEN);
+        assertNext(tokenizer, TomlToken.SQUARE_OPEN);
         assertNext(tokenizer, TomlToken.INTEGER, 1);
         assertNext(tokenizer, TomlToken.COMMA);
         assertNext(tokenizer, TomlToken.INTEGER, 2);
-        assertNext(tokenizer, TomlToken.SQUARECLOSE);
+        assertNext(tokenizer, TomlToken.SQUARE_CLOSE);
         assertNext(tokenizer, TomlToken.COMMA);
-        assertNext(tokenizer, TomlToken.SQUAREOPEN);
+        assertNext(tokenizer, TomlToken.SQUARE_OPEN);
         assertNext(tokenizer, TomlToken.INTEGER, 3);
         assertNext(tokenizer, TomlToken.COMMA);
         assertNext(tokenizer, TomlToken.INTEGER, 4);
         assertNext(tokenizer, TomlToken.COMMA);
         assertNext(tokenizer, TomlToken.INTEGER, 5);
-        assertNext(tokenizer, TomlToken.SQUARECLOSE);
-        assertNext(tokenizer, TomlToken.SQUARECLOSE);
+        assertNext(tokenizer, TomlToken.SQUARE_CLOSE);
+        assertNext(tokenizer, TomlToken.SQUARE_CLOSE);
     }
 
 }
