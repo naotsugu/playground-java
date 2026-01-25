@@ -17,13 +17,13 @@ class TomlTokenizer implements Closeable {
     private final Reader reader;
     private final BufferPool bufferPool;
 
-    private char[] buf;
     // Indexes in buffer
     //
     // XXXssssssssssssXXXXXXXXXXXXXXXXXXXXXXrrrrrrrrrrrrrrXXXXXX
     //    ^           ^                     ^             ^
     //    |           |                     |             |
     //   storeBegin  storeEnd            readBegin      readEnd
+    private char[] buf;
     private int readBegin;
     private int readEnd;
     private int storeBegin;
@@ -250,7 +250,7 @@ class TomlTokenizer implements Closeable {
                         storeEnd = readBegin++;  // ++ to consume quote char
                         return TomlToken.STRING; // Got the entire string
                     }
-                    readBegin++;                 // consume unescaped char
+                    readBegin++; // consume unescaped char
                 }
                 storeEnd = readBegin;
             }
