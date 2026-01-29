@@ -12,6 +12,21 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Optional;
 
+/**
+ * The {@code TomlTokenizer} class is responsible for reading and tokenizing
+ * TOML (Tom's Obvious, Minimal Language) input data from a character stream.
+ * It ensures correct parsing of various TOML types such as strings, numbers,
+ * booleans, dates, and tables, while maintaining the state of the tokenizer
+ * and supporting buffer management for efficient processing.
+ * <p>
+ * The class operates over a {@link Reader} and optionally uses
+ * a {@code BufferPool} to manage reusable character buffers. It provides
+ * utility methods for reading and processing TOML components and handles
+ * escaping, unescaping, and parsing near-compliant syntax transparently.
+ * <p>
+ * This tokenizer produces tokens of the {@code TomlToken} type, indicating
+ * the kind of component associated with each segment of the input.
+ */
 class TomlTokenizer implements Closeable {
 
     private final Reader reader;
@@ -787,10 +802,12 @@ class TomlTokenizer implements Closeable {
     private final static int HEX_LENGTH = HEX.length;
 
     private RuntimeException unexpectedChar(int ch) {
+        // TODO
         return new RuntimeException("tokenizer.unexpected.char [" + ch + "]");
     }
 
     private RuntimeException expectedChar(int unexpected, char expected) {
+        // TODO
         return new RuntimeException("tokenizer.expected.char [" + unexpected + "], expected [" + expected + "]");
     }
 

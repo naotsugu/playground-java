@@ -14,7 +14,7 @@ public class TomlReaderImpl implements TomlReader {
 
     public TomlReaderImpl(InputStream in) {
         bufferPool = BufferPool.defaultPool();
-        parser = new TomlParserImpl(in, bufferPool);
+        parser = null; // TODO new TomlParserImpl(in, bufferPool);
     }
 
     public TomlObject readObject() {
