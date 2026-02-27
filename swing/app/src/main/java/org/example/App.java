@@ -20,12 +20,6 @@ public class App {
                 App.this.paint(g);
             }
         };
-//        Canvas canvas = new Canvas() {
-//            @Override public void paint(Graphics g) {
-//                super.paint(g);
-//                App.this.paint(g);
-//            }
-//        };
         canvas.setBackground(Color.BLACK);
 
         frame.add(canvas);

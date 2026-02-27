@@ -8,6 +8,9 @@ interface ParserContext {
         public ParserContext next() {
             return next;
         }
+        public void next(ParserContext next) {
+            this.next = next;
+        }
     }
 
 
