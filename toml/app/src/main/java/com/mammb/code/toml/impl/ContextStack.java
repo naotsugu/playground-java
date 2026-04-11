@@ -19,7 +19,7 @@ final class ContextStack {
         if (++size >= limit) {
             throw new RuntimeException("Input is too deeply nested [" + size + "]");
         }
-        context.next = head;
+        context.next(head);
         head = context;
     }
 
@@ -29,7 +29,7 @@ final class ContextStack {
         }
         size--;
         ParserContext temp = head;
-        head = head.next;
+        head = head.next();
         return temp;
     }
 
