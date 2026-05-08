@@ -7,6 +7,7 @@ repositories {
 }
 
 dependencies {
+    implementation("commons-io:commons-io:2.22.0")
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
