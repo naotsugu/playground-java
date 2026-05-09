@@ -9,6 +9,10 @@ import java.nio.file.Paths;
 
 public class App {
 
+    void run() {
+
+    }
+
     public static void main(String[] args) throws Exception {
 
         FileEntry directory = new FileEntry(Paths.get(".").resolve("src").toFile());
