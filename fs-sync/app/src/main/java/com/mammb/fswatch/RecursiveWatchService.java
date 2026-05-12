@@ -9,27 +9,18 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.ArrayList;
 import java.util.List;
-import com.sun.nio.file.ExtendedWatchEventModifier;
+import java.util.stream.Stream;
 
-public class WindowsWatchService {
-
-    private static final WatchEvent.Kind<?>[] kinds = new WatchEvent.Kind<?>[] {
-        StandardWatchEventKinds.ENTRY_CREATE,
-        StandardWatchEventKinds.ENTRY_DELETE,
-        StandardWatchEventKinds.ENTRY_MODIFY
-    };
-
-    private static final WatchEvent.Modifier[] modifiers = new WatchEvent.Modifier[] {
-        ExtendedWatchEventModifier.FILE_TREE  // windows only
-    };
+public class RecursiveWatchService {
 
     static void run(Path watchPath, Event.Listener listener) throws Exception {
 
         try (WatchService watchService = FileSystems.getDefault().newWatchService()) {
 
-            watchPath.register(watchService, kinds, modifiers);
+            registerAll(watchService, watchPath);
 
             for (;;) {
+
                 WatchKey watchKey = watchService.take();
                 Path dir = (Path) watchKey.watchable();
                 List<Event> events = new ArrayList<>();
@@ -45,9 +36,12 @@ public class WindowsWatchService {
                     boolean isDirectory = Files.isDirectory(path);
 
                     if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
-                        events.add(isDirectory
-                            ? new Event.DirectoryCreate(path)
-                            : new Event.FileCreate(path));
+                        if (isDirectory) {
+                            events.add(new Event.DirectoryCreate(path));
+                            registerAll(watchService, path);
+                        } else {
+                            events.add(new Event.FileCreate(path));
+                        }
                     } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
                         events.add(isDirectory
                             ? new Event.DirectoryDelete(path)
@@ -58,9 +52,32 @@ public class WindowsWatchService {
                             : new Event.FileChange(path));
                     }
                 }
-                watchKey.reset();
+                if (!Files.exists(dir)) {
+                    watchKey.cancel();
+                } else {
+                    watchKey.reset();
+                }
                 events.forEach(listener);
             }
         }
     }
+
+    private static void registerAll(WatchService watchService, Path path) {
+        try (Stream<Path> stream = Files.find(path, Integer.MAX_VALUE,
+            (_, a) -> a.isDirectory())) {
+            stream.forEach(p -> {
+                try {
+                    p.register(watchService,
+                        StandardWatchEventKinds.ENTRY_CREATE,
+                        StandardWatchEventKinds.ENTRY_DELETE,
+                        StandardWatchEventKinds.ENTRY_MODIFY);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }
