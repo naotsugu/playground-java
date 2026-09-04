@@ -1,40 +1,31 @@
-import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform;
+import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 
 plugins {
     application
 }
-
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-}
-
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(26)
     }
 }
 
-val cargoExecutable = System.getProperty("user.home") +
-    if (DefaultNativePlatform.getCurrentOperatingSystem().isWindows) {
-        "\\.cargo\\bin\\cargo.exe"
-    } else {
-        "/.cargo/bin/cargo"
-    }
-val cargoTargetDir = layout.buildDirectory.dir("rust/math_lib/target/").get().asFile
-
 application {
     mainClass = "org.example.Main"
-    applicationDefaultJvmArgs = listOf(
-        "--enable-native-access=ALL-UNNAMED")
+    applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED")
 }
 
+val cargoExecutable = System.getProperty("user.home") + "/.cargo/bin/cargo"
+val cargoTargetDir = layout.buildDirectory.dir("rust/math_lib/").get().asFile
+
 tasks.register<Exec>("cargoBuild") {
+    description = "Builds the Rust library using Cargo"
     group = "rust"
     workingDir = layout.projectDirectory.dir("src/main/rust/math_lib").asFile
-    description = "Builds the Rust library using Cargo"
+
+    inputs.dir("$workingDir/src").withPropertyName("rustSourceDir")
+    inputs.files("$workingDir/Cargo.toml", "$workingDir/Cargo.lock").withPropertyName("cargoToml")
+    outputs.dir(cargoTargetDir).withPropertyName("cargoTargetDir")
+
     commandLine = listOf(cargoExecutable, "build", "--release",
         "--target-dir", cargoTargetDir.absolutePath)
 }
@@ -42,7 +33,12 @@ tasks.register<Exec>("cargoBuild") {
 tasks.named<JavaExec>("run") {
     dependsOn("cargoBuild")
     val rustLibDir = File(cargoTargetDir, "release").absolutePath
-    environment("DYLD_LIBRARY_PATH", rustLibDir) // macOS
-    environment("LD_LIBRARY_PATH", rustLibDir) // Linux
-    environment("PATH", rustLibDir) // Windows
+    val os = DefaultNativePlatform.getCurrentOperatingSystem()
+    if (os.isMacOsX) {
+        environment("DYLD_LIBRARY_PATH", rustLibDir)
+    } else if (os.isWindows) {
+        environment("PATH", rustLibDir)
+    } else {
+        environment("LD_LIBRARY_PATH", rustLibDir)
+    }
 }
