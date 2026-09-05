@@ -60,20 +60,22 @@ sourceSets {
 
 tasks.register<Exec>("jextract") {
     dependsOn("dljextract")
+    dependsOn("cargoBuild")
     group = "jextract"
     description = "Generates Java bindings from C header using jextract"
+    workingDir = layout.projectDirectory.dir("src/main/rust/math_lib").asFile
 
-    doFirst {
-        mkdir(jextractOutputDir.get())
-    }
+//    doFirst {
+//        mkdir(jextractOutputDir.get())
+//    }
 
     inputs.dir("$workingDir/src").withPropertyName("rustSourceDir")
     inputs.files("$workingDir/Cargo.toml", "$workingDir/Cargo.lock").withPropertyName("cargoToml")
     outputs.dir(jextractOutputDir).withPropertyName("jextractOutputDir")
 
-    commandLine(
+    commandLine = listOf(
         layout.buildDirectory.dir("jextract/jextract-25/bin/jextract").get().asFile.absolutePath,
-        layout.projectDirectory.dir("src/main/rust/math_lib/src/math_lib.h").asFile.absolutePath,
+        layout.projectDirectory.dir("src/main/rust/math_lib/math_lib.h").asFile.absolutePath,
         "--output", jextractOutputDir.get().asFile.absolutePath,
         "-t", "com.example.math_lib",
         "-l", "math_lib"
