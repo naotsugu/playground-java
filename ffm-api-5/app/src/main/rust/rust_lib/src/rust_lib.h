@@ -8,6 +8,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-void render_vello_scene(uint8_t *buffer, uint32_t width, uint32_t height);
+typedef struct RenderContext RenderContext;
+
+struct RenderContext *vello_ctx_create(uint32_t width, uint32_t height);
+
+void vello_ctx_render(struct RenderContext *ctx_ptr, uint8_t *buffer, double time);
+
+void vello_ctx_destroy(struct RenderContext *ctx_ptr);
 
 #endif  /* RUST_LIB_H */

@@ -1,6 +1,7 @@
 package org.example;
 
 import com.example.rust_lib.rust_lib_h;
+import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.image.ImageView;
@@ -15,27 +16,30 @@ import java.nio.ByteBuffer;
 
 public class App extends Application {
 
-    // 幅 * 4 が 256 の倍数になるように設定 (1024 * 4 = 4096 = 256 * 16)
+    // Set so that width * 4 is a multiple of 256 (e.g., 1024 * 4 = 4096 = 256 * 16)
     private static final int WIDTH = 1024;
     private static final int HEIGHT = 768;
 
     private Arena arena;
+    private MemorySegment ctxPtr;
+    private AnimationTimer timer;
 
     @Override
     public void start(Stage stage) {
         arena = Arena.ofShared();
 
+        // initialize the Vello context on the Rust side and receive its pointer
+        ctxPtr = rust_lib_h.vello_ctx_create(WIDTH, HEIGHT);
+        if (ctxPtr.equals(MemorySegment.NULL)) {
+            throw new RuntimeException("Failed to initialize Vello context");
+        }
+
+        // allocate a shared memory region for image transfer
         long bufferSize = (long) WIDTH * HEIGHT * 4;
-        MemorySegment segment = arena.allocate(bufferSize);
+        MemorySegment pixelData = arena.allocate(bufferSize);
 
-        System.out.println("[Java] Vello (GPU) でシーンをレンダリングします...");
-
-        // ★ 自動生成された render_vello_scene 関数を呼び出す
-        rust_lib_h.render_vello_scene(segment, WIDTH, HEIGHT);
-
-        ByteBuffer byteBuffer = segment.asByteBuffer();
-
-        // BGRA事前乗算形式でバッファを作成
+        // set up PixelBuffer and WritableImage
+        ByteBuffer byteBuffer = pixelData.asByteBuffer();
         PixelFormat<ByteBuffer> format = PixelFormat.getByteBgraPreInstance();
         PixelBuffer<ByteBuffer> pixelBuffer = new PixelBuffer<>(WIDTH, HEIGHT, byteBuffer, format);
         WritableImage image = new WritableImage(pixelBuffer);
@@ -44,16 +48,35 @@ public class App extends Application {
         StackPane root = new StackPane(imageView);
         Scene scene = new Scene(root, WIDTH, HEIGHT);
 
-        stage.setTitle("JavaFX + Vello(GPU) Zero-Copy Rendering");
+        stage.setTitle("JavaFX + Rust Vello - Realtime Rendering");
         stage.setScene(scene);
         stage.show();
+
+        long startTime = System.nanoTime();
+        timer = new AnimationTimer() {
+            @Override
+            public void handle(long now) {
+                double time = (now - startTime) / 1_000_000_000.0;
+
+                // request Rust to perform rendering
+                rust_lib_h.vello_ctx_render(ctxPtr, pixelData, time);
+
+                // notify JavaFX that the PixelBuffer has changed to refresh the screen
+                pixelBuffer.updateBuffer(_ -> null);
+            }
+        };
+        timer.start();
     }
 
     @Override
     public void stop() {
-        if (arena != null) {
-            arena.close();
+        if (timer != null) {
+            timer.stop();
         }
+        if (ctxPtr != null && !ctxPtr.equals(MemorySegment.NULL)) {
+            rust_lib_h.vello_ctx_destroy(ctxPtr);
+        }
+        if (arena != null) arena.close();
     }
 
 }
