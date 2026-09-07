@@ -1,31 +1,59 @@
-import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform;
+import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 
 plugins {
     application
+    id("org.openjfx.javafxplugin") version "0.1.0"
 }
 
-repositories {
-    mavenCentral()
-}
+repositories {  mavenCentral() }
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
-    }
+java.toolchain {
+    languageVersion = JavaLanguageVersion.of(25)
 }
 
 application {
     mainClass = "org.example.Main"
     applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED")
 }
+javafx {
+    version = "25"
+    modules("javafx.controls")
+}
 
 val cargoExecutable = System.getProperty("user.home") + "/.cargo/bin/cargo"
-val cargoTargetDir = layout.buildDirectory.dir("rust/math_lib/").get().asFile
+val cargoTargetDir = layout.buildDirectory.dir("rust/rust_lib/").get().asFile
+
+tasks.register<Exec>("cargoBuild") {
+    description = "Builds the Rust library using Cargo"
+    group = "rust"
+    workingDir = layout.projectDirectory.dir("src/main/rust/rust_lib").asFile
+
+    inputs.dir("$workingDir/src").withPropertyName("rustSourceDir")
+    inputs.files("$workingDir/Cargo.toml", "$workingDir/Cargo.lock").withPropertyName("cargoToml")
+    outputs.dir(cargoTargetDir).withPropertyName("cargoTargetDir")
+
+    commandLine = listOf(cargoExecutable, "build", "--release",
+        "--target-dir", cargoTargetDir.absolutePath)
+}
+
+
+tasks.named<JavaExec>("run") {
+    dependsOn("cargoBuild")
+    val rustLibDir = File(cargoTargetDir, "release").absolutePath
+    val os = DefaultNativePlatform.getCurrentOperatingSystem()
+    if (os.isMacOsX) {
+        environment("DYLD_LIBRARY_PATH", rustLibDir)
+    } else if (os.isWindows) {
+        environment("PATH", rustLibDir)
+    } else {
+        environment("LD_LIBRARY_PATH", rustLibDir)
+    }
+}
 
 val os   = DefaultNativePlatform.getCurrentOperatingSystem()
 val arch = DefaultNativePlatform.getCurrentArchitecture()
 
-tasks.register<Copy>("dljextract") {
+tasks.register<Copy>("downloadJextract") {
     description = "download jextract"
     val url = when {
         os.isMacOsX  && arch.isArm64 -> "https://download.java.net/java/early_access/jextract/25/2/openjdk-25-jextract+2-4_macos-aarch64_bin.tar.gz"
@@ -50,35 +78,26 @@ tasks.register<Copy>("dljextract") {
 }
 
 val jextractOutputDir = layout.buildDirectory.dir("generated/main/java")
-sourceSets {
-    main {
-        java {
-            srcDir(jextractOutputDir)
-        }
-    }
-}
 
 tasks.register<Exec>("jextract") {
-    dependsOn("dljextract")
-    dependsOn("cargoBuild")
+    dependsOn("downloadJextract")
     group = "jextract"
     description = "Generates Java bindings from C header using jextract"
-    workingDir = layout.projectDirectory.dir("src/main/rust/math_lib").asFile
 
-//    doFirst {
-//        mkdir(jextractOutputDir.get())
-//    }
+    doFirst {
+        mkdir(jextractOutputDir.get())
+    }
 
     inputs.dir("$workingDir/src").withPropertyName("rustSourceDir")
     inputs.files("$workingDir/Cargo.toml", "$workingDir/Cargo.lock").withPropertyName("cargoToml")
     outputs.dir(jextractOutputDir).withPropertyName("jextractOutputDir")
 
-    commandLine = listOf(
+    commandLine(
         layout.buildDirectory.dir("jextract/jextract-25/bin/jextract").get().asFile.absolutePath + if (os.isWindows) ".bat" else "",
-        layout.projectDirectory.dir("src/main/rust/math_lib/math_lib.h").asFile.absolutePath,
+        layout.projectDirectory.dir("src/main/rust/rust_lib/src/rust_lib.h").asFile.absolutePath,
         "--output", jextractOutputDir.get().asFile.absolutePath,
-        "-t", "com.example.math_lib",
-        "-l", "math_lib"
+        "-t", "com.example.rust_lib",
+        "-l", "rust_lib"
     )
 }
 
@@ -86,28 +105,10 @@ tasks.named("compileJava") {
     dependsOn("jextract")
 }
 
-tasks.register<Exec>("cargoBuild") {
-    description = "Builds the Rust library using Cargo"
-    group = "rust"
-    workingDir = layout.projectDirectory.dir("src/main/rust/math_lib").asFile
-
-    inputs.dir("$workingDir/src").withPropertyName("rustSourceDir")
-    inputs.files("$workingDir/Cargo.toml", "$workingDir/Cargo.lock").withPropertyName("cargoToml")
-    outputs.dir(cargoTargetDir).withPropertyName("cargoTargetDir")
-
-    commandLine = listOf(cargoExecutable, "build", "--release",
-        "--target-dir", cargoTargetDir.absolutePath)
-}
-
-tasks.named<JavaExec>("run") {
-    dependsOn("cargoBuild")
-    val rustLibDir = File(cargoTargetDir, "release").absolutePath
-    val os = DefaultNativePlatform.getCurrentOperatingSystem()
-    if (os.isMacOsX) {
-        environment("DYLD_LIBRARY_PATH", rustLibDir)
-    } else if (os.isWindows) {
-        environment("PATH", rustLibDir)
-    } else {
-        environment("LD_LIBRARY_PATH", rustLibDir)
+sourceSets {
+    main {
+        java {
+            srcDir(jextractOutputDir)
+        }
     }
 }

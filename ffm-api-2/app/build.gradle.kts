@@ -72,7 +72,7 @@ tasks.register<Exec>("jextract") {
     outputs.dir(jextractOutputDir).withPropertyName("jextractOutputDir")
 
     commandLine(
-        layout.buildDirectory.dir("jextract/jextract-25/bin/jextract").get().asFile.absolutePath,
+        layout.buildDirectory.dir("jextract/jextract-25/bin/jextract").get().asFile.absolutePath + if (os.isWindows) ".bat" else "",
         layout.projectDirectory.dir("src/main/rust/math_lib/src/math_lib.h").asFile.absolutePath,
         "--output", jextractOutputDir.get().asFile.absolutePath,
         "-t", "com.example.math_lib",
