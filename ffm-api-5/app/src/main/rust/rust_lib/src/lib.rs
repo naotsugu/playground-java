@@ -139,18 +139,14 @@ pub extern "C" fn vello_ctx_render(ctx_ptr: *mut RenderContext, buffer: *mut u8,
 
     let mapped_data = buffer_slice.get_mapped_range();
 
-    let src_pixels = unsafe {
-        slice::from_raw_parts(mapped_data.as_ptr() as *const [u8; 4], length / 4)
-    };
-    let dst_pixels = unsafe {
-        slice::from_raw_parts_mut(buffer as *mut [u8; 4], length / 4)
-    };
-
-    for (src, dst) in src_pixels.iter().zip(dst_pixels.iter_mut()) {
-        dst[0] = src[2]; // R -> B
-        dst[1] = src[1]; // G -> G
-        dst[2] = src[0]; // B -> R
-        dst[3] = src[3]; // A -> A
+    // SIMD copy
+    let src_bytes = unsafe { slice::from_raw_parts(mapped_data.as_ptr(), length) };
+    let dst_bytes = unsafe { slice::from_raw_parts_mut(buffer, length) };
+    for (src, dst) in src_bytes.chunks_exact(4).zip(dst_bytes.chunks_exact_mut(4)) {
+        dst[0] = src[2]; // B <- R
+        dst[1] = src[1]; // G <- G
+        dst[2] = src[0]; // R <- B
+        dst[3] = src[3]; // A <- A
     }
     drop(mapped_data);
     ctx.readback_buffer.unmap();

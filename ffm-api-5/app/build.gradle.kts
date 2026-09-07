@@ -13,7 +13,9 @@ java.toolchain {
 
 application {
     mainClass = "org.example.Main"
-    applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED")
+    applicationDefaultJvmArgs = listOf(
+        "--enable-native-access=ALL-UNNAMED",
+        "--enable-native-access=javafx.graphics")
 }
 javafx {
     version = "25"

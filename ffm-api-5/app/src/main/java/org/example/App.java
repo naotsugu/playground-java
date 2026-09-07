@@ -48,7 +48,7 @@ public class App extends Application {
         StackPane root = new StackPane(imageView);
         Scene scene = new Scene(root, WIDTH, HEIGHT);
 
-        stage.setTitle("JavaFX + Rust Vello - Realtime Rendering");
+        stage.setTitle("Vello Realtime Rendering");
         stage.setScene(scene);
         stage.show();
 
