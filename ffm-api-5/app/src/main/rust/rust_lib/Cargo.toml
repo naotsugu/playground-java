@@ -13,3 +13,10 @@ cbindgen = "0.29.4"
 vello = "0.10.0"
 wgpu = "29.0.3"
 pollster = "0.4.0"
+
+[profile.dev.package."*"]
+debug = 0
+opt-level = 2
+
+[profile.release.package."*"]
+debug = 0
