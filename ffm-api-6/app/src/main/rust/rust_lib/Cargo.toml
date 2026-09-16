@@ -1,0 +1,23 @@
+[package]
+name = "rust_lib"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[build-dependencies]
+cbindgen = "0.29.4"
+
+[dependencies]
+vello = "0.10.0"
+wgpu = "29.0.3"
+pollster = "0.4.0"
+skrifa = "0.47"
+
+[profile.dev.package."*"]
+debug = 0
+opt-level = 2
+
+[profile.release.package."*"]
+debug = 0
